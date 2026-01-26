@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bots      Bot[]
+}
+
+model Bot {
+  id             String    @id @default(uuid())
+  name           String
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  type           String    @default("GRID") // GRID, MOMENTUM, etc.
+  status         String    @default("IDLE") // IDLE, RUNNING, PAUSED, STOPPED
+  mode           String    @default("DEMO") // DEMO, REAL
+  
+  // Settings
+  symbol         String    // e.g. BTC/USDT
+  exchange       String    @default("bybit")
+  capital        Float     // Total capital allocated
+  buyPercentage  Float     // % of capital per trade
+  sellPercentage Float     // % profit to sell
+  buyDrop        Float     // % price drop to buy
+  
+  // API Keys (Encrypted)
+  apiKey         String?
+  apiSecret      String?
+  
+  // State
+  lastPrice      Float?
+  totalProfit    Float     @default(0)
+  active         Boolean   @default(true)
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  trades         Trade[]
+  positions      Position[]
+}
+
+model Position {
+  id        String   @id @default(uuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id])
+  symbol    String
+  amount    Float    // Quantity of coin
+  entryPrice Float
+  currentPrice Float?
+  pnl       Float?
+  status    String   @default("OPEN") // OPEN, CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Trade {
+  id          String   @id @default(uuid())
+  botId       String
+  bot         Bot      @relation(fields: [botId], references: [id])
+  symbol      String
+  side        String   // BUY, SELL
+  amount      Float
+  price       Float
+  total       Float    // Total value (amount * price)
+  fee         Float?
+  orderId     String?
+  profit      Float?   // Realized profit for sells
+  timestamp   DateTime @default(now())
+}
