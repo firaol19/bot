@@ -3,14 +3,36 @@ import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/encryption';
 import { botManager } from '@/lib/bot-manager';
 import { BybitClient } from '@/lib/exchange/bybit-client';
+import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        const user = await prisma.user.findFirst();
+        // Get user from JWT token
+        const cookieStore = await cookies();
+        const token = cookieStore.get('auth-token')?.value;
+
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        let userId;
+        try {
+            const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || 'fallback-secret');
+            const { payload } = await jwtVerify(token, secret);
+            userId = (payload as any).userId;
+        } catch (authError) {
+            return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
         if (!user) {
-            return NextResponse.json({ error: 'No user found' }, { status: 400 });
+            return NextResponse.json({ error: 'User account not found' }, { status: 404 });
         }
 
         // 1. Initial Exchange Connection & Pre-Trade Validation
