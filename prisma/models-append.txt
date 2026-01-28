@@ -1,0 +1,27 @@
+
+model BotLog {
+  id        String   @id @default(uuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id])
+  level     String   // INFO, WARNING, ERROR
+  message   String   @db.Text
+  data      Json?
+  timestamp DateTime @default(now())
+  
+  @@index([botId])
+  @@index([timestamp])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id])
+  type      String   // STOP_LOSS, TAKE_PROFIT, ERROR, POSITION_LIMIT, DAILY_LOSS_LIMIT
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  timestamp DateTime @default(now())
+  
+  @@index([botId])
+  @@index([read])
+  @@index([timestamp])
+}

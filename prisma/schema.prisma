@@ -37,6 +37,13 @@ model Bot {
   sellPercentage Float     // % profit to sell
   buyDrop        Float     // % price drop to buy
   
+  // Risk Management
+  stopLossPercentage   Float?    // % loss to trigger stop loss
+  takeProfitPercentage Float?    // % profit to trigger take profit
+  maxPositions         Int       @default(10) // Maximum open positions
+  maxDailyLoss         Float?    // Maximum loss allowed per day
+  trailingStopPercent  Float?    // Trailing stop percentage
+  
   // API Keys (Encrypted)
   apiKey         String?
   apiSecret      String?
@@ -45,12 +52,26 @@ model Bot {
   lastPrice      Float?
   totalProfit    Float     @default(0)
   active         Boolean   @default(true)
+  highestPrice   Float?    // Track highest price for trailing stop
+  
+  // Runtime tracking
+  startedAt      DateTime?  // When bot was last started
+  lastActivityAt DateTime?  // Last trade or check
+  totalRuntime   Int        @default(0) // Total seconds running
+  
+  // Statistics cache
+  totalBuys      Int        @default(0)
+  totalSells     Int        @default(0)
+  winRate        Float?
+  avgProfit      Float?
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   
   trades         Trade[]
   positions      Position[]
+  logs           BotLog[]
+  alerts         Alert[]
 }
 
 model Position {
@@ -80,4 +101,31 @@ model Trade {
   orderId     String?
   profit      Float?   // Realized profit for sells
   timestamp   DateTime @default(now())
+}
+
+model BotLog {
+  id        String   @id @default(uuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id])
+  level     String   // INFO, WARNING, ERROR
+  message   String   @db.Text
+  data      Json?
+  timestamp DateTime @default(now())
+  
+  @@index([botId])
+  @@index([timestamp])
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id])
+  type      String   // STOP_LOSS, TAKE_PROFIT, ERROR, POSITION_LIMIT, DAILY_LOSS_LIMIT
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  timestamp DateTime @default(now())
+  
+  @@index([botId])
+  @@index([read])
+  @@index([timestamp])
 }

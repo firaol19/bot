@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export function PriceChart() {
+export function PriceChart({ symbol = 'BTC/USDT' }: { symbol?: string }) {
     // Placeholder data - in real app would fetch from API/Websocket
     const [data, setData] = useState<{ time: string, price: number }[]>([]);
     const [loading, setLoading] = useState(true);
-    // Hardcoded symbol for chart on dashboard main view, or pass as prop
-    const symbol = 'BTC/USDT';
 
     useEffect(() => {
         const fetchData = async () => {

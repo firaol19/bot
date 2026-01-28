@@ -1,12 +1,12 @@
-import { BotEngine } from '@/services/bot-engine';
+import { BotEngine } from './bot-engine';
 import { prisma } from '@/lib/db';
 
 /**
  * Bot Manager Service - Singleton
  * Manages all bot instances and ensures 24/7 execution
  */
-class BotManager {
-    private static instance: BotManager;
+class BotManagerService {
+    private static instance: BotManagerService;
     private bots: Map<string, BotEngine> = new Map();
     private initialized: boolean = false;
 
@@ -14,11 +14,11 @@ class BotManager {
         // Private constructor for singleton
     }
 
-    static getInstance(): BotManager {
-        if (!BotManager.instance) {
-            BotManager.instance = new BotManager();
+    static getInstance(): BotManagerService {
+        if (!BotManagerService.instance) {
+            BotManagerService.instance = new BotManagerService();
         }
-        return BotManager.instance;
+        return BotManagerService.instance;
     }
 
     /**
@@ -31,7 +31,7 @@ class BotManager {
             return;
         }
 
-        console.log('[BotManager] Initializing and restarting bots...');
+        console.log('[BotManager] Initializing...');
 
         try {
             // Find all bots that were running before server restart
@@ -39,26 +39,16 @@ class BotManager {
                 where: { status: 'RUNNING' }
             });
 
-            console.log(`[BotManager] Found ${runningBots.length} running bots to resume`);
+            console.log(`[BotManager] Found ${runningBots.length} running bots`);
 
             // Restart each bot
             for (const bot of runningBots) {
                 try {
-                    // Create engine instance
-                    const engine = new BotEngine(bot.id);
-                    // Update start time to now for new session
-                    await prisma.bot.update({
-                        where: { id: bot.id },
-                        data: { startedAt: new Date() }
-                    });
-                    // Start bot
-                    await engine.start();
-                    this.bots.set(bot.id, engine);
-
-                    console.log(`[BotManager] Successfully resumed bot: ${bot.name} (${bot.id})`);
+                    await this.startBot(bot.id);
+                    console.log(`[BotManager] Restarted bot: ${bot.name} (${bot.id})`);
                 } catch (error: any) {
-                    console.error(`[BotManager] Failed to resume bot ${bot.id}:`, error.message);
-                    // Mark bot as stopped if restart fails to avoid infinite restart loops
+                    console.error(`[BotManager] Failed to restart bot ${bot.id}:`, error.message);
+                    // Mark bot as stopped if restart fails
                     await prisma.bot.update({
                         where: { id: bot.id },
                         data: { status: 'STOPPED' }
@@ -67,7 +57,7 @@ class BotManager {
             }
 
             this.initialized = true;
-            console.log('[BotManager] Initialization complete. All bots running in background.');
+            console.log('[BotManager] Initialization complete');
         } catch (error) {
             console.error('[BotManager] Initialization failed:', error);
         }
@@ -77,16 +67,18 @@ class BotManager {
      * Start a bot
      */
     async startBot(botId: string): Promise<void> {
-        // Check if bot is already running in memory
+        // Check if bot is already running
         if (this.bots.has(botId)) {
-            console.log(`[BotManager] Bot ${botId} is already running in memory`);
+            console.log(`[BotManager] Bot ${botId} is already running`);
             return;
         }
 
         try {
             const engine = new BotEngine(botId);
+            await engine.start();
+            this.bots.set(botId, engine);
 
-            // Set startedAt in DB BEFORE starting engine
+            // Update last started time
             await prisma.bot.update({
                 where: { id: botId },
                 data: {
@@ -95,10 +87,7 @@ class BotManager {
                 }
             });
 
-            await engine.start();
-            this.bots.set(botId, engine);
-
-            console.log(`[BotManager] Started bot instance: ${botId}`);
+            console.log(`[BotManager] Started bot: ${botId}`);
         } catch (error: any) {
             console.error(`[BotManager] Failed to start bot ${botId}:`, error.message);
             throw error;
@@ -112,21 +101,16 @@ class BotManager {
         const engine = this.bots.get(botId);
 
         if (!engine) {
-            // Even if not in memory, we should try to mark it as STOPPED in DB
-            console.log(`[BotManager] Bot ${botId} not found in memory, marking as STOPPED in DB`);
-            await prisma.bot.update({
-                where: { id: botId },
-                data: { status: 'STOPPED', startedAt: null }
-            });
+            console.log(`[BotManager] Bot ${botId} is not running`);
             return;
         }
 
         try {
             await engine.stop();
             this.bots.delete(botId);
-            console.log(`[BotManager] Stopped bot instance: ${botId}`);
+            console.log(`[BotManager] Stopped bot: ${botId}`);
         } catch (error: any) {
-            console.error(`[BotManager] Error during bot stop ${botId}:`, error.message);
+            console.error(`[BotManager] Failed to stop bot ${botId}:`, error.message);
             throw error;
         }
     }
@@ -134,15 +118,22 @@ class BotManager {
     /**
      * Get running bot instance
      */
-    getBotInstance(botId: string): BotEngine | undefined {
+    getBot(botId: string): BotEngine | undefined {
         return this.bots.get(botId);
     }
 
     /**
-     * Check if bot is running in memory
+     * Check if bot is running
      */
     isRunning(botId: string): boolean {
         return this.bots.has(botId);
+    }
+
+    /**
+     * Get all running bot IDs
+     */
+    getRunningBotIds(): string[] {
+        return Array.from(this.bots.keys());
     }
 
     /**
@@ -153,22 +144,29 @@ class BotManager {
     }
 
     /**
-     * Stop all bots gracefully
+     * Stop all bots (for graceful shutdown)
      */
     async stopAll(): Promise<void> {
-        console.log('[BotManager] Gracefully stopping all bots...');
-        const botIds = Array.from(this.bots.keys());
-        for (const id of botIds) {
-            await this.stopBot(id).catch(e => console.error(e));
-        }
+        console.log('[BotManager] Stopping all bots...');
+
+        const stopPromises = Array.from(this.bots.keys()).map(botId =>
+            this.stopBot(botId).catch(err =>
+                console.error(`Failed to stop bot ${botId}:`, err)
+            )
+        );
+
+        await Promise.all(stopPromises);
+        console.log('[BotManager] All bots stopped');
     }
 }
 
-export const botManager = BotManager.getInstance();
+// Export singleton instance
+export const botManager = BotManagerService.getInstance();
 
-// Auto-initialize on server
+// Initialize on module load (server startup)
 if (typeof window === 'undefined') {
+    // Only run on server side
     botManager.initialize().catch(err => {
-        console.error('[BotManager] Server initialization failed:', err);
+        console.error('[BotManager] Failed to initialize:', err);
     });
 }

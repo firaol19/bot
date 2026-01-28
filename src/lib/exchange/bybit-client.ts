@@ -11,17 +11,19 @@ export class BybitClient {
     private client: any;
 
     constructor(config: BybitConfig = {}) {
-        const exchangeConfig: any = {
+        // ✅ CRITICAL FIX: Create the CCXT client instance FIRST
+        this.client = new ccxt.bybit({
             apiKey: config.apiKey,
             secret: config.apiSecret,
             timeout: 30000, // 30s timeout
             enableRateLimit: true,
             options: {
-                defaultType: 'swap', // Use perpetual swaps by default
-                recvWindow: 20000, // Increase window to 20s to tolerate clock drift
+                defaultType: 'spot', // Use spot trading by default (better for small balances)
+                recvWindow: 20000,
             },
-        };
+        });
 
+        // ✅ THEN configure URLs if needed (after client exists)
         if (config.testnet) {
             // NOTE: We do NOT call setSandboxMode(true) here.
             // Why? Because 'setSandboxMode' often implies Legacy Testnet rules/URLs.
@@ -33,26 +35,32 @@ export class BybitClient {
             const demoUrl = 'https://api-demo.bybit.com';
 
             // Override all potential endpoints to use the Unified Demo server
-            // @ts-ignore
-            this.client.urls['api']['public'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['private'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['v5'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['spot'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['future'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['contract'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['inverse'] = demoUrl;
-            // @ts-ignore
-            this.client.urls['api']['option'] = demoUrl;
+            this.client.urls['api'] = {
+                public: demoUrl,
+                private: demoUrl,
+                v5: demoUrl,
+                spot: demoUrl,
+                future: demoUrl,
+                contract: demoUrl,
+                inverse: demoUrl,
+                option: demoUrl,
+            };
+        } else {
+            console.log(`[BybitClient] Initialized in Real Trading Mode (Mainnet). Key Prefix: ${config.apiKey?.substring(0, 4)}***`);
         }
+    }
 
-        // If we didn't set custom URLs (Mainnet), we don't need to do anything special.
-        // If we did (Demo), 'urls' config handles it.
+    /**
+     * Validate connection to Bybit API
+     */
+    async validateConnection(): Promise<boolean> {
+        try {
+            await this.client.fetchTime();
+            return true;
+        } catch (error: any) {
+            console.error('[BybitClient] Connection validation failed:', error.message);
+            return false;
+        }
     }
 
     async getTicker(symbol: string) {
@@ -74,6 +82,60 @@ export class BybitClient {
 
     async getKlines(symbol: string, timeframe: string, limit?: number) {
         return await this.client.fetchOHLCV(symbol, timeframe, undefined, limit);
+    }
+
+    amountToPrecision(symbol: string, amount: number): string {
+        return this.client.amountToPrecision(symbol, amount);
+    }
+
+    priceToPrecision(symbol: string, price: number): string {
+        return this.client.priceToPrecision(symbol, price);
+    }
+
+    /**
+     * Subscribe to real-time ticker updates via WebSocket
+     */
+    async subscribeTicker(symbol: string, callback: (price: number) => void) {
+        const WebSocket = require('ws');
+        const baseUrl = this.client.urls['api'].public.includes('demo')
+            ? 'wss://stream-demo.bybit.com/v5/public/spot'
+            : 'wss://stream.bybit.com/v5/public/spot';
+
+        const ws = new WebSocket(baseUrl);
+        const bybitSymbol = symbol.replace('/', '');
+
+        ws.on('open', () => {
+            console.log(`[BybitClient] WS Connected for ${symbol}`);
+            ws.send(JSON.stringify({
+                op: 'subscribe',
+                args: [`tickers.${bybitSymbol}`]
+            }));
+        });
+
+        ws.on('message', (data: any) => {
+            try {
+                const message = JSON.parse(data.toString());
+                if (message.topic === `tickers.${bybitSymbol}` && message.data) {
+                    const price = parseFloat(message.data.lastPrice);
+                    if (!isNaN(price)) {
+                        callback(price);
+                    }
+                }
+            } catch (error) {
+                console.error('[BybitClient] WS Message Parse Error:', error);
+            }
+        });
+
+        ws.on('error', (error: any) => {
+            console.error(`[BybitClient] WS Error for ${symbol}:`, error.message);
+        });
+
+        ws.on('close', () => {
+            console.log(`[BybitClient] WS Closed for ${symbol}, reconnecting in 5s...`);
+            setTimeout(() => this.subscribeTicker(symbol, callback), 5000);
+        });
+
+        return ws;
     }
 
     async requestDemoFunds() {

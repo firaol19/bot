@@ -6,8 +6,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const { id: botId } = await params;
         await botManager.stopBot(botId);
         return NextResponse.json({ success: true, message: 'Bot stopped' });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error stopping bot:', error);
-        return NextResponse.json({ error: 'Failed to stop bot' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to stop bot' }, { status: 500 });
     }
 }
