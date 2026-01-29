@@ -18,7 +18,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Dashboard <span className="text-gray-500 text-lg font-normal">/ {currentMode === 'REAL' ? 'Real Trading' : 'Demo View'}</span></h1>
+            <h1 className="text-2xl md:text-3xl font-bold flex flex-wrap items-baseline gap-2">
+                Dashboard
+                <span className="text-gray-500 text-base md:text-lg font-normal">/ {currentMode === 'REAL' ? 'Real Trading' : 'Demo View'}</span>
+            </h1>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

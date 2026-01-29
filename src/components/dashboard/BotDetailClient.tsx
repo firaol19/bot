@@ -84,19 +84,19 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4">
                     <Link href="/dashboard" className="p-2 hover:bg-gray-800 rounded-lg transition">
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold flex items-center gap-3">
+                        <h1 className="text-xl md:text-2xl font-bold flex flex-wrap items-center gap-3">
                             {botData.name}
                             <span className="text-sm px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-normal">
                                 {botData.symbol}
                             </span>
                             {isRunning && (
-                                <span className="flex items-center gap-2 text-sm px-3 py-1 rounded-full bg-green-900/30 text-green-400 font-normal">
+                                <span className="flex items-center gap-2 text-sm px-3 py-1 rounded-full bg-green-900/30 text-green-400 font-normal whitespace-nowrap">
                                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                                     Running 24/7
                                 </span>
@@ -107,11 +107,11 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full md:w-auto">
                     <button
                         onClick={handleStartStop}
                         disabled={actionLoading}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition disabled:opacity-50 ${isRunning
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition disabled:opacity-50 ${isRunning
                             ? 'bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-800'
                             : 'bg-green-900/30 hover:bg-green-900/50 text-green-400 border border-green-800'
                             }`}
@@ -121,7 +121,7 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                     </button>
                     <Link
                         href={`/dashboard/bot/${botId}/settings`}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-white font-medium"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-white font-medium"
                     >
                         <Settings size={18} />
                         Edit Bot

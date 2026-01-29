@@ -133,17 +133,17 @@ export function PositionsTable({
                                 key={pos.id}
                                 className={`group hover:bg-gray-900/50 ${nearStopLoss ? 'bg-red-900/10' : nearTakeProfit ? 'bg-green-900/10' : ''}`}
                             >
-                                <td className="py-4 font-medium">{pos.symbol}</td>
-                                <td className="py-4 text-right text-gray-300">
+                                <td className="py-3 md:py-4 font-medium min-w-[80px]">{pos.symbol}</td>
+                                <td className="py-3 md:py-4 text-right text-gray-300">
                                     {pos.amount.toFixed(6)}
                                 </td>
-                                <td className="py-4 text-right text-gray-300">
+                                <td className="py-3 md:py-4 text-right text-gray-300">
                                     ${pos.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                                 </td>
-                                <td className="py-4 text-right text-gray-300">
+                                <td className="py-3 md:py-4 text-right text-gray-300">
                                     {currentPrice ? `$${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                                 </td>
-                                <td className={`py-4 text-right font-medium ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
+                                <td className={`py-3 md:py-4 text-right font-medium ${isProfit ? 'text-green-400' : 'text-red-400'}`}>
                                     {currentPrice ? (
                                         <div className="flex items-center justify-end gap-1">
                                             {isProfit ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -153,7 +153,7 @@ export function PositionsTable({
                                         </div>
                                     ) : '-'}
                                 </td>
-                                <td className="py-4 text-right text-sm">
+                                <td className="py-3 md:py-4 text-right text-sm">
                                     {stopLoss ? (
                                         <span className={nearStopLoss ? 'text-red-400 font-medium' : 'text-gray-400'}>
                                             ${stopLoss.toFixed(2)}
@@ -162,7 +162,7 @@ export function PositionsTable({
                                         <span className="text-gray-600">-</span>
                                     )}
                                 </td>
-                                <td className="py-4 text-right text-sm">
+                                <td className="py-3 md:py-4 text-right text-sm">
                                     {takeProfit ? (
                                         <span className={nearTakeProfit ? 'text-green-400 font-medium' : 'text-gray-400'}>
                                             ${takeProfit.toFixed(2)}
@@ -171,18 +171,18 @@ export function PositionsTable({
                                         <span className="text-gray-600">-</span>
                                     )}
                                 </td>
-                                <td className="py-4 text-center">
+                                <td className="py-3 md:py-4 text-center">
                                     <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                                         <Clock className="w-3 h-3" />
                                         {getPositionAge(pos.createdAt)}
                                     </span>
                                 </td>
                                 {botId && (
-                                    <td className="py-4 text-center">
+                                    <td className="py-3 md:py-4 text-center">
                                         <button
                                             onClick={() => handleClosePosition(pos.id)}
                                             disabled={closing === pos.id}
-                                            className="inline-flex items-center gap-1 px-3 py-1 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="inline-flex items-center gap-1 px-3 py-1 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                                             title="Manually close this position"
                                         >
                                             <X className="w-3 h-3" />
