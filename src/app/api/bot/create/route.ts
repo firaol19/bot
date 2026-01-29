@@ -50,7 +50,49 @@ export async function POST(request: Request) {
             testnet: isDemo
         });
 
-        // 2. Fetch Current Price & Calculate Amount
+        // 2. Capital Validation Logic
+        const balance = await exchange.getBalance();
+        const freeUsdt = balance['USDT']?.free || 0;
+
+        // Fetch all active bots for this user & mode to calculate reserved capital
+        const existingBots = await prisma.bot.findMany({
+            where: {
+                userId: user.id,
+                mode: body.mode,
+                // Assuming 'DELETED' status might exist or we just count all that are not archived.
+                // If status is a strictly defined enum in schema, make sure to not break it.
+                // Based on previous files, status seems to be string or enum 'RUNNING' | 'STOPPED' etc.
+                // We'll assume all bots in DB are "active" unless explicitly deleted/archived.
+                // If there is no 'DELETED' status usage yet, we just take all.
+            },
+            include: {
+                positions: {
+                    where: { status: 'OPEN' }
+                }
+            }
+        });
+
+        // Calculate Unused Capital (Reserved but not yet in a position)
+        let totalUnusedCapital = 0;
+        for (const b of existingBots) {
+            const botCapital = b.capital;
+            // Estimate value locked in positions (approximate by entry value)
+            const positionValue = b.positions.reduce((sum, p) => sum + (p.amount * p.entryPrice), 0);
+
+            // The unused portion of this bot's capital
+            const unused = Math.max(0, botCapital - positionValue);
+            totalUnusedCapital += unused;
+        }
+
+        const requiredCapital = totalUnusedCapital + body.capital;
+
+        if (freeUsdt < requiredCapital) {
+            return NextResponse.json({
+                error: `Insufficient Capital. Available: $${freeUsdt.toFixed(2)}. Required (Existing Unused $${totalUnusedCapital.toFixed(2)} + New $${body.capital}): $${requiredCapital.toFixed(2)}.`
+            }, { status: 400 });
+        }
+
+        // 3. Fetch Current Price & Calculate Amount
         let currentPrice = 0;
         try {
             const ticker = await exchange.getTicker(body.symbol);
@@ -75,7 +117,7 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // 3. EXECUTE INITIAL MARKET BUY (MANDATORY TO PROCEED)
+        // 4. EXECUTE INITIAL MARKET BUY (MANDATORY TO PROCEED)
         console.log(`[API] Executing Mandatory Initial Buy: ${precisionAmount} ${body.symbol} at ~${currentPrice}`);
         let order;
         try {
@@ -88,7 +130,7 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // 4. ATOMIC DATABASE PERSISTENCE (Bot + Position + Trade)
+        // 5. ATOMIC DATABASE PERSISTENCE (Bot + Position + Trade)
         const bot = await prisma.$transaction(async (tx) => {
             const newBot = await tx.bot.create({
                 data: {
@@ -139,7 +181,7 @@ export async function POST(request: Request) {
             return newBot;
         });
 
-        // 5. Register with Background Manager
+        // 6. Register with Background Manager
         try {
             await botManager.startBot(bot.id);
             console.log(`[API] Bot ${bot.id} registered with manager and resumed.`);

@@ -121,9 +121,10 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                     </button>
                     <Link
                         href={`/dashboard/bot/${botId}/settings`}
-                        className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-white font-medium"
                     >
-                        <Settings size={20} />
+                        <Settings size={18} />
+                        Edit Bot
                     </Link>
                 </div>
             </div>

@@ -135,7 +135,12 @@ export class BotEngine {
     private async executeStrategy(currentPrice: number) {
         const bot = await prisma.bot.findUnique({
             where: { id: this.botId },
-            include: { positions: { where: { status: 'OPEN' } } }
+            include: {
+                positions: {
+                    where: { status: 'OPEN' },
+                    orderBy: { createdAt: 'asc' }
+                }
+            }
         }) as any;
 
         if (!bot || !bot.active) {

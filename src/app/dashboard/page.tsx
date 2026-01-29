@@ -75,12 +75,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                                 </div>
                             </div>
 
-                            <Link
-                                href={`/dashboard/bot/${bot.id}?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
-                                className="block w-full py-2 bg-blue-600 hover:bg-blue-700 text-center rounded-lg transition"
-                            >
-                                View Details
-                            </Link>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Link
+                                    href={`/dashboard/bot/${bot.id}?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
+                                    className="block p-2 bg-blue-600 hover:bg-blue-700 text-center rounded-lg transition text-sm font-semibold"
+                                >
+                                    View Details
+                                </Link>
+                                <Link
+                                    href={`/dashboard/bot/${bot.id}/settings`}
+                                    className="block p-2 bg-gray-800 hover:bg-gray-700 text-center rounded-lg transition text-sm text-gray-300 hover:text-white"
+                                >
+                                    Edit Bot
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 ))}
