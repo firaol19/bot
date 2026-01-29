@@ -55,7 +55,7 @@ function LoginForm() {
                     <p className="text-gray-400 mt-2 text-sm uppercase tracking-widest font-medium">Welcome back, Strategist</p>
                 </div>
 
-                <div className="bg-gray-900/50 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl">
+                <div className="bg-gray-900/50 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {isRegistered && (
                             <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-3 rounded-xl text-sm font-medium flex items-center gap-2">

@@ -63,7 +63,7 @@ export default function RegisterPage() {
                     <p className="text-gray-400 mt-2 text-sm uppercase tracking-widest font-medium">Join the Automated Trading Era</p>
                 </div>
 
-                <div className="bg-gray-900/50 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl">
+                <div className="bg-gray-900/50 backdrop-blur-xl border border-white/10 p-6 md:p-8 rounded-3xl shadow-2xl">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
                             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-1">

@@ -86,7 +86,7 @@ export function BotSettingsForm({ bot }: { bot: any }) {
 
     return (
         <div className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6 bg-gray-900 p-8 rounded-xl border border-gray-800">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-gray-900 p-4 md:p-8 rounded-xl border border-gray-800">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-2">Bot Name</label>
