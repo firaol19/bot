@@ -239,15 +239,21 @@ export class BotEngine {
             }
 
             // Calculate cost for this trade (based on ALLOCATED capital, not current wallet)
-            const tradeCost = bot.capital * (bot.buyPercentage / 100);
+            let tradeCost = bot.capital * (bot.buyPercentage / 100);
 
-            // Safety: Ensure our allocated capital chunk doesn't exceed what's actually in our wallet
-            if (tradeCost > exchangeFreeBalance && bot.mode === 'REAL') {
-                await this.logWarning(bot.id, `Insufficient wallet balance (${exchangeFreeBalance.toFixed(2)}) for next trade ($${tradeCost.toFixed(2)})`);
-                return;
+            // Adjust trade cost if available balance is lower (due to previous losses)
+            // but ensure it's still worth trading (Bybit min is ~$1.00)
+            if (tradeCost > exchangeFreeBalance) {
+                if (exchangeFreeBalance >= 1.1) {
+                    await this.logWarning(bot.id, `Available balance ($${exchangeFreeBalance.toFixed(2)}) is less than target trade size ($${tradeCost.toFixed(2)}). Using remaining balance instead.`);
+                    tradeCost = exchangeFreeBalance;
+                } else {
+                    await this.logError(bot.id, `Insufficient balance ($${exchangeFreeBalance.toFixed(2)}) to open new position even at minimum size.`);
+                    return;
+                }
             }
 
-            await this.buy(bot, currentPrice, bot.capital); // Use bot.capital as the base for % calculation
+            await this.buy(bot, currentPrice, tradeCost / (bot.buyPercentage / 100)); // Reverse calculate to keep buy() logic or just update buy()
         }
 
         // Update last seen price

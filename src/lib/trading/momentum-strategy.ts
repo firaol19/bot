@@ -122,7 +122,7 @@ export class MomentumStrategy {
         longMA: number,
         rsi: number,
         entryPrice: number,
-        minProfitPercent: number = 1
+        minProfitPercent: number = 0
     ): boolean {
         const profitPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
 

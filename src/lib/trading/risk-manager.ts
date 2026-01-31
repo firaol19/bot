@@ -21,8 +21,8 @@ export class RiskManager {
 
     constructor(config: RiskConfig = {}) {
         this.config = {
-            stopLossPercentage: config.stopLossPercentage || 5, // Default 5% stop loss
-            takeProfitPercentage: config.takeProfitPercentage || 10, // Default 10% take profit
+            stopLossPercentage: config.stopLossPercentage,
+            takeProfitPercentage: config.takeProfitPercentage,
             maxPositions: config.maxPositions || 10,
             maxDailyLoss: config.maxDailyLoss,
             trailingStopPercent: config.trailingStopPercent,
