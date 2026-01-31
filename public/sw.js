@@ -1,15 +1,39 @@
-// Minimal service worker for PWA installation support
+const CACHE_NAME = 'fira-bot-cache-v1';
+const ASSETS_TO_CACHE = [
+    '/',
+    '/manifest.json',
+    '/icon-192.png',
+    '/icon-512.png'
+];
+
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Install Event processing');
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(ASSETS_TO_CACHE);
+        })
+    );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activating Service Worker...');
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        })
+    );
     return self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-    // Simple pass-through fetch listener (required for PWA)
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+        caches.match(event.request).then((response) => {
+            return response || fetch(event.request);
+        })
+    );
 });
