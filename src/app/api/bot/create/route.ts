@@ -143,6 +143,7 @@ export async function POST(request: Request) {
                     buyDrop: body.buyDrop,
                     mode: body.mode,
                     status: 'RUNNING',
+                    active: true,
                     exchange: body.exchange,
                     stopLossPercentage: body.stopLossPercentage,
                     takeProfitPercentage: body.takeProfitPercentage,
@@ -153,7 +154,7 @@ export async function POST(request: Request) {
                     apiSecret: encrypt(apiSecret),
                     totalBuys: 1,
                     startedAt: new Date()
-                } as any
+                }
             });
 
             await tx.position.create({

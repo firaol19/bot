@@ -1,27 +1,17 @@
-
-model BotLog {
+model MarketAnalysis {
   id        String   @id @default(uuid())
   botId     String
   bot       Bot      @relation(fields: [botId], references: [id])
-  level     String   // INFO, WARNING, ERROR
-  message   String   @db.Text
-  data      Json?
+  
+  // Analysis metadata
   timestamp DateTime @default(now())
+  decision  String   // SIGNAL_READY, WAITING_FOR_TREND, WAITING_FOR_SETUP, MONITORING_ENTRY, SCANNING, ERROR
+  reason    String   @db.Text
+  
+  // Market data snapshot - stored as JSON for flexibility
+  // Contains: timeframes (15m, 5m, 1m), indicators (EMAs, volumes), and decision details
+  data      Json
   
   @@index([botId])
-  @@index([timestamp])
-}
-
-model Alert {
-  id        String   @id @default(uuid())
-  botId     String
-  bot       Bot      @relation(fields: [botId], references: [id])
-  type      String   // STOP_LOSS, TAKE_PROFIT, ERROR, POSITION_LIMIT, DAILY_LOSS_LIMIT
-  message   String   @db.Text
-  read      Boolean  @default(false)
-  timestamp DateTime @default(now())
-  
-  @@index([botId])
-  @@index([read])
   @@index([timestamp])
 }

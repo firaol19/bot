@@ -79,17 +79,22 @@ class BotManager {
     async startBot(botId: string): Promise<void> {
         // Check if bot is already running in memory
         if (this.bots.has(botId)) {
-            console.log(`[BotManager] Bot ${botId} is already running in memory`);
+            console.log(`[BotManager] Bot ${botId} is already running in memory. Syncing DB status.`);
+            await prisma.bot.update({
+                where: { id: botId },
+                data: { status: 'RUNNING' }
+            });
             return;
         }
 
         try {
             const engine = new BotEngine(botId);
 
-            // Set startedAt in DB BEFORE starting engine
+            // Set status and startedAt in DB BEFORE starting engine
             await prisma.bot.update({
                 where: { id: botId },
                 data: {
+                    status: 'RUNNING',
                     startedAt: new Date(),
                     lastActivityAt: new Date()
                 }
@@ -164,7 +169,16 @@ class BotManager {
     }
 }
 
-export const botManager = BotManager.getInstance();
+// Use globalThis to persist the singleton across HMR in development
+const globalForBotManager = globalThis as unknown as {
+    botManager: BotManager | undefined;
+};
+
+export const botManager = globalForBotManager.botManager ?? BotManager.getInstance();
+
+if (process.env.NODE_ENV !== 'production') {
+    globalForBotManager.botManager = botManager;
+}
 
 // Auto-initialize on server
 if (typeof window === 'undefined') {

@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Fira Bot",
   },
+};
+
+export const viewport = {
   themeColor: "#3B82F6",
 };
 

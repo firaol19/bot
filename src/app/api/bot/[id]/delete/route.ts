@@ -24,6 +24,7 @@ export async function POST(
             prisma.alert.deleteMany({ where: { botId } }),
             prisma.trade.deleteMany({ where: { botId } }),
             prisma.position.deleteMany({ where: { botId } }),
+            (prisma as any).marketAnalysis.deleteMany({ where: { botId } }),
             prisma.bot.delete({ where: { id: botId } }),
         ]);
 

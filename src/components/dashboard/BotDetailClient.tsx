@@ -46,12 +46,22 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
         return () => clearInterval(interval);
     }, [botId]);
 
+    if (loading || !botData || !stats) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-gray-400">Loading bot data...</div>
+            </div>
+        );
+    }
+
+    const isRunning = stats.isRunningInManager || botData.status === 'RUNNING';
+
     const handleStartStop = async () => {
         if (!botData) return;
 
         setActionLoading(true);
         try {
-            const endpoint = botData.status === 'RUNNING' ? 'stop' : 'start';
+            const endpoint = isRunning ? 'stop' : 'start';
             const res = await fetch(`/api/bot/${botId}/${endpoint}`, {
                 method: 'POST'
             });
@@ -70,16 +80,6 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
             setActionLoading(false);
         }
     };
-
-    if (loading || !botData || !stats) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-gray-400">Loading bot data...</div>
-            </div>
-        );
-    }
-
-    const isRunning = botData.status === 'RUNNING';
 
     return (
         <div className="space-y-6">

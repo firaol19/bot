@@ -5,6 +5,7 @@ interface BybitConfig {
     apiKey?: string;
     apiSecret?: string;
     testnet?: boolean;
+    defaultType?: 'spot' | 'linear';
 }
 
 export class BybitClient {
@@ -15,10 +16,10 @@ export class BybitClient {
         this.client = new ccxt.bybit({
             apiKey: config.apiKey,
             secret: config.apiSecret,
-            timeout: 30000, // 30s timeout
+            timeout: 60000, // 60s timeout
             enableRateLimit: true,
             options: {
-                defaultType: 'spot', // Use spot trading by default (better for small balances)
+                defaultType: config.defaultType || 'spot',
                 recvWindow: 20000,
             },
         });
@@ -68,20 +69,60 @@ export class BybitClient {
     }
 
     async getBalance() {
-        return await this.client.fetchBalance();
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        const params = isLinear ? { category: 'linear' } : { category: 'spot' };
+        return await this.client.fetchBalance(params);
     }
 
     async createOrder(symbol: string, type: 'limit' | 'market', side: 'buy' | 'sell', amount: number, price?: number) {
-        return await this.client.createOrder(symbol, type, side, amount, price);
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        const category = isLinear ? 'linear' : 'spot';
+        return await this.client.createOrder(symbol, type, side, amount, price, { category });
     }
 
     async getPositions(symbol?: string) {
-        const positions = await this.client.fetchPositions(symbol ? [symbol] : undefined);
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        if (!isLinear) return [];
+
+        const positions = await this.client.fetchPositions(symbol ? [symbol] : undefined, { category: 'linear' });
         return positions;
     }
 
     async getKlines(symbol: string, timeframe: string, limit?: number) {
-        return await this.client.fetchOHLCV(symbol, timeframe, undefined, limit);
+        // ✅ FIX: In Bybit V5, market data needs category (spot, linear, inverse, option)
+        // Defaulting to linear for futures if defaultType is linear
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        const category = isLinear ? 'linear' : 'spot';
+
+        // Format symbol for Bybit V5 if it has a slash
+        const bybitSymbol = symbol.replace('/', '');
+
+        try {
+            // Use direct request or ohlcv depending on CCXT version stability for V5
+            return await this.client.fetchOHLCV(symbol, timeframe, undefined, limit, {
+                category: category
+            });
+        } catch (error: any) {
+            console.error(`[BybitClient] Kline fetch failed for ${symbol}:`, error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Set leverage for a symbol (Linear Contract)
+     */
+    async setLeverage(symbol: string, leverage: number) {
+        try {
+            // Note: In Unified account, leverage is often set per category/symbol
+            return await this.client.setLeverage(leverage, symbol);
+        } catch (error: any) {
+            // Some errors are acceptable (e.g., leverage already set)
+            if (error.message.includes('not modified') || error.message.includes('leverage is same')) {
+                return;
+            }
+            console.error('[BybitClient] Failed to set leverage:', error.message);
+            throw error;
+        }
     }
 
     amountToPrecision(symbol: string, amount: number): string {
@@ -97,9 +138,12 @@ export class BybitClient {
      */
     async subscribeTicker(symbol: string, callback: (price: number) => void) {
         const WebSocket = require('ws');
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        const typePath = isLinear ? 'linear' : 'spot';
+
         const baseUrl = this.client.urls['api'].public.includes('demo')
-            ? 'wss://stream-demo.bybit.com/v5/public/spot'
-            : 'wss://stream.bybit.com/v5/public/spot';
+            ? `wss://stream-demo.bybit.com/v5/public/${typePath}`
+            : `wss://stream.bybit.com/v5/public/${typePath}`;
 
         const ws = new WebSocket(baseUrl);
         const bybitSymbol = symbol.replace('/', '');

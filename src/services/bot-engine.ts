@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { BybitClient } from '@/lib/exchange/bybit-client';
 import { GridStrategy } from '@/lib/trading/grid-strategy';
+import { MultiTimeframeStrategy } from '@/lib/trading/multi-timeframe-strategy';
 import { RiskManager } from '@/lib/trading/risk-manager';
 import { decrypt } from '@/lib/encryption';
 
@@ -8,17 +9,19 @@ export class BotEngine {
     private botId: string;
     private isRunning: boolean = false;
     private checkInterval: NodeJS.Timeout | null = null;
+    private analysisInterval: NodeJS.Timeout | null = null; // New: periodic analysis timer
     private exchange: BybitClient | null = null;
-    private strategy: GridStrategy;
+    private strategy: GridStrategy | MultiTimeframeStrategy;
     private riskManager: RiskManager;
     private ws: any = null;
     private lastProcessedPrice: number = 0;
     private isExecuting: boolean = false;
+    private lastAnalysisTime: number = 0; // Track last analysis timestamp
 
     constructor(botId: string) {
         this.botId = botId;
-        this.strategy = new GridStrategy();
-        this.riskManager = new RiskManager(); // Will be updated with bot-specific config
+        this.strategy = new GridStrategy(); // Default, will be updated in start()
+        this.riskManager = new RiskManager();
     }
 
     async start() {
@@ -26,6 +29,13 @@ export class BotEngine {
 
         const bot = await prisma.bot.findUnique({ where: { id: this.botId } }) as any;
         if (!bot) throw new Error('Bot not found');
+
+        // Initialize strategy based on bot type
+        if (bot.type === 'FEATURES') {
+            this.strategy = new MultiTimeframeStrategy();
+        } else {
+            this.strategy = new GridStrategy();
+        }
 
         // Initialize risk manager with bot configuration
         this.riskManager = new RiskManager({
@@ -41,7 +51,8 @@ export class BotEngine {
             this.exchange = new BybitClient({
                 apiKey: decrypt(bot.apiKey),
                 apiSecret: decrypt(bot.apiSecret),
-                testnet: bot.mode === 'DEMO'
+                testnet: bot.mode === 'DEMO',
+                defaultType: bot.type === 'FEATURES' ? 'linear' : 'spot'
             });
 
             // Validate connection
@@ -49,6 +60,15 @@ export class BotEngine {
             if (!isConnected) {
                 await this.logError(bot.id, 'Failed to connect to exchange');
                 throw new Error('Failed to connect to exchange');
+            }
+
+            // Set leverage if this is a FEATURES bot
+            if (bot.type === 'FEATURES' && bot.leverage > 1) {
+                try {
+                    await this.exchange.setLeverage(bot.symbol, bot.leverage);
+                } catch (e) {
+                    // Log but continue
+                }
             }
 
             await this.logInfo(bot.id, `Connected to ${bot.mode} mode successfully`);
@@ -71,11 +91,15 @@ export class BotEngine {
 
         // Keep a slow heartbeat loop for non-price status updates
         this.heartbeat();
+
+        // Start periodic analysis for when no positions are open
+        this.startPeriodicAnalysis();
     }
 
     async stop() {
         this.isRunning = false;
         if (this.checkInterval) clearTimeout(this.checkInterval);
+        if (this.analysisInterval) clearTimeout(this.analysisInterval);
         if (this.ws) {
             this.ws.terminate();
             this.ws = null;
@@ -112,6 +136,71 @@ export class BotEngine {
         }
 
         this.checkInterval = setTimeout(() => this.heartbeat(), 30000); // 30 second heartbeat
+    }
+
+    private async startPeriodicAnalysis() {
+        if (!this.isRunning) return;
+
+        try {
+            const bot = await prisma.bot.findUnique({
+                where: { id: this.botId },
+                include: { positions: { where: { status: 'OPEN' } } }
+            }) as any;
+
+            if (!bot || !bot.active) return;
+
+            // Only perform analysis if no open positions (for Features bots)
+            if (bot.type === 'FEATURES' && bot.positions.length === 0) {
+                const now = Date.now();
+                // Run analysis every 5 minutes
+                if (now - this.lastAnalysisTime >= 5 * 60 * 1000) {
+                    this.lastAnalysisTime = now;
+                    await this.performPeriodicAnalysis(bot);
+                }
+            }
+        } catch (error: any) {
+            console.error('[BotEngine] Periodic analysis error:', error.message);
+        }
+
+        // Check again in 60 seconds
+        this.analysisInterval = setTimeout(() => this.startPeriodicAnalysis(), 60000);
+    }
+
+    private async performPeriodicAnalysis(bot: any) {
+        if (!this.exchange || bot.type !== 'FEATURES') return;
+
+        try {
+            const mfStrategy = this.strategy as MultiTimeframeStrategy;
+            const report = await mfStrategy.getAnalysisReport(bot.symbol, this.exchange);
+
+            // Store analysis in database (gracefully handle if table doesn't exist)
+            try {
+                await (prisma as any).marketAnalysis.create({
+                    data: {
+                        botId: bot.id,
+                        decision: report.decision,
+                        reason: report.reason,
+                        data: report
+                    }
+                });
+            } catch (dbError: any) {
+                // If table doesn't exist yet, log to BotLog instead (silent fallback)
+                if (dbError.code === 'P2021') {
+                    await this.logAnalysis(bot.id, `MTF Analysis: ${report.decision}`, report);
+                } else {
+                    throw dbError;
+                }
+            }
+
+            await this.logInfo(bot.id, `📊 Periodic Analysis Complete: ${report.decision}`);
+
+            // If signal is ready, log detailed info
+            if (report.decision === 'SIGNAL_READY') {
+                await this.createAlert(bot.id, 'INFO', 'Trading signal detected! All timeframes aligned.');
+            }
+        } catch (error: any) {
+            await this.logError(bot.id, `Failed to perform periodic analysis: ${error.message}`);
+        }
     }
 
     private async onPriceUpdate(price: number) {
@@ -193,7 +282,7 @@ export class BotEngine {
             }
 
             // Check regular sell conditions (grid strategy)
-            if (this.strategy.shouldSell(currentPrice, position.entryPrice, bot.sellPercentage)) {
+            if (bot.type !== 'FEATURES' && (this.strategy as GridStrategy).shouldSell(currentPrice, position.entryPrice, bot.sellPercentage)) {
                 await this.logInfo(bot.id, `Grid sell triggered for position ${position.id} at ${currentPrice} (Profit target reached)`);
                 await this.sell(bot, position, currentPrice, 'GRID_SELL');
             }
@@ -205,13 +294,51 @@ export class BotEngine {
 
         // Determine if we should buy
         const isFirstTrade = bot.positions.length === 0;
-        const shouldBuy = isFirstTrade || this.strategy.shouldBuy(currentPrice, lastEntry, bot.buyDrop);
+        let shouldBuy = false;
 
-        if (shouldBuy) {
-            if (isFirstTrade) {
-                await this.logInfo(bot.id, `🚀 Initial buy triggered for ${bot.symbol} at market price to start trading session`);
+        if (bot.type === 'FEATURES') {
+            const mfStrategy = this.strategy as MultiTimeframeStrategy;
+
+            // 🚀 Stability Fix: Throttle strategy execution to every 60 seconds
+            // This prevents overwhelming the exchange (especially demo servers) and rate limits
+            const now = Date.now();
+            const lastCheckTime = (this as any).lastStrategyCheckTime || 0;
+            if (now - lastCheckTime < 60000) return; // Wait at least 60s between full strategy scans
+            (this as any).lastStrategyCheckTime = now;
+
+            // Periodic Analysis Logging (Every 5 minutes)
+            const lastLogTime = (this as any).lastAnalysisLogTime || 0;
+            if (now - lastLogTime > 5 * 60 * 1000) {
+                (this as any).lastAnalysisLogTime = now;
+                try {
+                    const report = await mfStrategy.getAnalysisReport(bot.symbol, this.exchange);
+                    await this.logAnalysis(bot.id, `MTF Analysis: ${report.decision}`, report);
+                } catch (logError: any) {
+                    console.error('[BotEngine] Failed to log periodic analysis:', logError.message);
+                }
             }
 
+            // 1. Check 15m Trend
+            const klines15m = await this.exchange?.getKlines(bot.symbol, '15m', 100);
+            const trend = mfStrategy.checkTrend(klines15m || []);
+
+            if (trend !== 'NONE') {
+                // 2. Check 5m Setup
+                const klines5m = await this.exchange?.getKlines(bot.symbol, '5m', 100);
+                const setupOk = mfStrategy.checkSetup(klines5m || [], trend);
+
+                if (setupOk) {
+                    // 3. Check 1m Entry
+                    const klines1m = await this.exchange?.getKlines(bot.symbol, '1m', 50);
+                    shouldBuy = mfStrategy.checkEntry(klines1m || [], trend);
+                }
+            }
+        } else {
+            // Original Grid Strategy Buy logic
+            shouldBuy = isFirstTrade || (this.strategy as GridStrategy).shouldBuy(currentPrice, lastEntry, bot.buyDrop);
+        }
+
+        if (shouldBuy) {
             // Check position limit
             if (!this.riskManager.canOpenPosition(bot.positions.length)) {
                 await this.logWarning(bot.id, `Position limit reached (${bot.positions.length}/${bot.maxPositions})`);
@@ -224,36 +351,46 @@ export class BotEngine {
             if (this.exchange) {
                 try {
                     const balance = await this.exchange.getBalance();
-                    if (balance['USDT']) {
+                    // Unified / Linear balance check
+                    if (bot.type === 'FEATURES') {
+                        // For Linear, balance is often under 'USDT' in the 'total' or 'free' section of the contract wallet
+                        exchangeFreeBalance = balance.total?.USDT || balance.USDT?.free || 0;
+                    } else if (balance['USDT']) {
                         exchangeFreeBalance = balance['USDT'].free || 0;
-
-                        // Sync capital for display purposes if wanted, but bot.capital is our calculation base
-                        await prisma.bot.update({
-                            where: { id: bot.id },
-                            data: { lastActivityAt: new Date() } // Just update heart-beat
-                        });
                     }
+
+                    // Sync capital for heart-beat
+                    await prisma.bot.update({
+                        where: { id: bot.id },
+                        data: { lastActivityAt: new Date() }
+                    });
                 } catch (error: any) {
                     await this.logError(bot.id, `Failed to verify exchange balance: ${error.message}`);
                 }
             }
 
-            // Calculate cost for this trade (based on ALLOCATED capital, not current wallet)
-            let tradeCost = bot.capital * (bot.buyPercentage / 100);
+            // Calculate cost for this trade
+            // For Features, we use ALL capital. For Grid, we use buyPercentage.
+            let tradeCost = bot.type === 'FEATURES' ? bot.capital : (bot.capital * (bot.buyPercentage / 100));
 
-            // Adjust trade cost if available balance is lower (due to previous losses)
-            // but ensure it's still worth trading (Bybit min is ~$1.00)
+            // Adjust trade cost if available balance is lower
             if (tradeCost > exchangeFreeBalance) {
-                if (exchangeFreeBalance >= 1.1) {
+                if (exchangeFreeBalance >= 1.5) { // Increased min size to 1.5 to safely exceed Bybit's 1.10
                     await this.logWarning(bot.id, `Available balance ($${exchangeFreeBalance.toFixed(2)}) is less than target trade size ($${tradeCost.toFixed(2)}). Using remaining balance instead.`);
                     tradeCost = exchangeFreeBalance;
                 } else {
-                    await this.logError(bot.id, `Insufficient balance ($${exchangeFreeBalance.toFixed(2)}) to open new position even at minimum size.`);
+                    await this.logError(bot.id, `Insufficient balance ($${exchangeFreeBalance.toFixed(2)}) to open new position.`);
                     return;
                 }
             }
 
-            await this.buy(bot, currentPrice, tradeCost / (bot.buyPercentage / 100)); // Reverse calculate to keep buy() logic or just update buy()
+            if (isFirstTrade && bot.type !== 'FEATURES') {
+                await this.logInfo(bot.id, `🚀 Initial buy triggered for ${bot.symbol} at market price`);
+            }
+
+            // Reverse calculate totalCapital for buy() logic or just update buy() calls
+            const totalCapitalForBuy = bot.type === 'FEATURES' ? tradeCost : (tradeCost / (bot.buyPercentage / 100));
+            await this.buy(bot, currentPrice, totalCapitalForBuy);
         }
 
         // Update last seen price
@@ -448,6 +585,21 @@ export class BotEngine {
             });
         } catch (error) {
             console.error('Failed to log to database:', error);
+        }
+    }
+
+    private async logAnalysis(botId: string, message: string, data?: any) {
+        try {
+            await (prisma as any).botLog.create({
+                data: {
+                    botId,
+                    level: 'ANALYSIS',
+                    message,
+                    data: data ? JSON.parse(JSON.stringify(data)) : undefined
+                }
+            });
+        } catch (error) {
+            console.error('Failed to log analysis to database:', error);
         }
     }
 

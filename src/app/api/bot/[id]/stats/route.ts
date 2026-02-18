@@ -80,6 +80,34 @@ export async function GET(
         // Check if bot is actually running in manager
         const isRunningInManager = botManager.isRunning(id);
 
+        // Fetch latest analysis and errors for FEATURES bots
+        let latestAnalysis = null;
+        let recentErrors: any[] = [];
+        if (bot.type === 'FEATURES') {
+            // Fetch from MarketAnalysis table for structured analysis data
+            // Backward compatible: gracefully handle if table doesn't exist yet
+            try {
+                latestAnalysis = await (prisma as any).marketAnalysis.findFirst({
+                    where: { botId: id },
+                    orderBy: { timestamp: 'desc' }
+                });
+            } catch (error: any) {
+                // If table doesn't exist (P2021), fall back to BotLog silently
+                if (error.code === 'P2021') {
+                    latestAnalysis = await prisma.botLog.findFirst({
+                        where: { botId: id, level: 'ANALYSIS' },
+                        orderBy: { timestamp: 'desc' }
+                    });
+                }
+            }
+
+            recentErrors = await prisma.botLog.findMany({
+                where: { botId: id, level: 'ERROR' },
+                orderBy: { timestamp: 'desc' },
+                take: 5
+            });
+        }
+
         const stats = {
             totalTrades,
             totalBuys,
@@ -92,7 +120,9 @@ export async function GET(
             runningTimeFormatted: formatRuntime(runningTime),
             lastActivityAt: bot.lastActivityAt,
             currentPrice,
-            isRunningInManager
+            isRunningInManager,
+            latestAnalysis,
+            recentErrors
         };
 
         return NextResponse.json({

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, LineChart, Settings, Activity, LogOut } from 'lucide-react';
+import { Home, LineChart, Settings, Activity, LogOut, Zap, Plus } from 'lucide-react';
 import { ViewModeToggle } from './ViewModeToggle';
 import { useRouter } from 'next/navigation';
 
@@ -43,6 +43,17 @@ export function Sidebar() {
                     <Link href={`/dashboard/analytics${query}`} className="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition">
                         <LineChart size={20} />
                         <span>Analytics</span>
+                    </Link>
+                    <div className="pt-2 pb-1 px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                        Features Bot
+                    </div>
+                    <Link href={`/dashboard/features${query}`} className={`flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition ${pathname === '/dashboard/features' ? 'bg-gray-800 border-l-4 border-yellow-500' : ''}`}>
+                        <Plus size={20} className="text-yellow-400" />
+                        <span className="text-yellow-500/80 font-medium">Create Bot</span>
+                    </Link>
+                    <Link href={`/dashboard/features/manage${query}`} className={`flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition ${pathname === '/dashboard/features/manage' ? 'bg-gray-800 border-l-4 border-blue-400' : ''}`}>
+                        <Activity size={20} className="text-blue-400" />
+                        <span className="text-blue-400 font-medium">Manage Bots</span>
                     </Link>
                     <Link href={`/dashboard/settings${query}`} className="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition">
                         <Settings size={20} />

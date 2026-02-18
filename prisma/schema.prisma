@@ -43,6 +43,7 @@ model Bot {
   maxPositions         Int       @default(10) // Maximum open positions
   maxDailyLoss         Float?    // Maximum loss allowed per day
   trailingStopPercent  Float?    // Trailing stop percentage
+  leverage            Int       @default(1)
   
   // API Keys (Encrypted)
   apiKey         String?
@@ -72,6 +73,7 @@ model Bot {
   positions      Position[]
   logs           BotLog[]
   alerts         Alert[]
+  marketAnalyses MarketAnalysis[]
 }
 
 model Position {
@@ -129,3 +131,22 @@ model Alert {
   @@index([read])
   @@index([timestamp])
 }
+
+model MarketAnalysis {
+  id        String   @id @default(uuid())
+  botId     String
+  bot       Bot      @relation(fields: [botId], references: [id])
+  
+  // Analysis metadata
+  timestamp DateTime @default(now())
+  decision  String   // SIGNAL_READY, WAITING_FOR_TREND, WAITING_FOR_SETUP, MONITORING_ENTRY, SCANNING, ERROR
+  reason    String   @db.Text
+  
+  // Market data snapshot - stored as JSON for flexibility
+  // Contains: timeframes (15m, 5m, 1m), indicators (EMAs, volumes), and decision details
+  data      Json
+  
+  @@index([botId])
+  @@index([timestamp])
+}
+

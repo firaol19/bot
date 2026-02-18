@@ -14,7 +14,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         include: { positions: { where: { status: 'OPEN' } } }
     });
 
-    const bots = allBots.filter(bot => bot.mode === currentMode);
+    const bots = allBots.filter(bot => bot.mode === currentMode && bot.type !== 'FEATURES');
 
     return (
         <div className="space-y-6">
