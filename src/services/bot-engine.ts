@@ -401,7 +401,11 @@ export class BotEngine {
     }
 
     private async buy(bot: any, price: number, totalCapital: number) {
-        const amount = this.strategy.calculatePositionSize(totalCapital, bot.buyPercentage, price);
+        // Calculate amount, passing leverage for FEATURES bots
+        const amount = bot.type === 'FEATURES'
+            ? (this.strategy as MultiTimeframeStrategy).calculatePositionSize(totalCapital, bot.buyPercentage, price, bot.leverage)
+            : this.strategy.calculatePositionSize(totalCapital, bot.buyPercentage, price);
+
         const tradeValue = amount * price;
 
         // Validate trade size
@@ -413,34 +417,69 @@ export class BotEngine {
 
         // Execute Real Trade
         let orderId: string | undefined;
-        if (bot.mode === 'REAL' && this.exchange) {
+        let finalAmount = amount;
+
+        if (this.exchange) {
             try {
+                // Check market limits (minQty, minNotional)
+                const limits = await this.exchange.getMarketLimits(bot.symbol);
+                if (limits) {
+                    const minQty = limits.minQty || 0;
+                    const minNotional = limits.minNotional || 0;
+
+                    // 1. Check minQty
+                    if (finalAmount < minQty) {
+                        await this.logInfo(bot.id, `Order quantity (${finalAmount}) is below minimum (${minQty}). Adjusting to minimum.`);
+                        finalAmount = minQty;
+                    }
+
+                    // 2. Check minNotional (approximate)
+                    const estimatedNotional = finalAmount * price;
+                    if (estimatedNotional < minNotional) {
+                        const requiredAmount = minNotional / price;
+                        await this.logInfo(bot.id, `Order value ($${estimatedNotional.toFixed(2)}) is below minimum notional ($${minNotional}). Adjusting quantity to ${requiredAmount.toFixed(6)}.`);
+                        finalAmount = requiredAmount;
+                    }
+
+                    // 3. Final sanity check: does adjusted amount exceed available capital significantly?
+                    const finalValue = finalAmount * price;
+                    if (finalValue > totalCapital * 1.5 && bot.type !== 'FEATURES') {
+                        // For non-features bots (grid), we don't want to double the intended risk automatically
+                        await this.logError(bot.id, `Adjusted trade value ($${finalValue.toFixed(2)}) exceeds allocation safety limit. Skipping trade.`);
+                        return;
+                    }
+                }
+
                 // Apply exchange precision
-                const precisionAmount = parseFloat(this.exchange.amountToPrecision(bot.symbol, amount));
+                const precisionAmount = parseFloat(this.exchange.amountToPrecision(bot.symbol, finalAmount));
 
-                await this.logInfo(bot.id, `Executing ${bot.mode} BUY order: ${precisionAmount} ${bot.symbol} (Value: $${tradeValue.toFixed(2)})`);
-
-                const order = await this.exchange.createOrder(bot.symbol, 'market', 'buy', precisionAmount);
-                orderId = order.id;
-
-                await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
+                if (bot.mode === 'REAL') {
+                    await this.logInfo(bot.id, `Executing ${bot.mode} BUY order: ${precisionAmount} ${bot.symbol} (Value: $${(precisionAmount * price).toFixed(2)})`);
+                    const order = await this.exchange.createOrder(bot.symbol, 'market', 'buy', precisionAmount);
+                    orderId = order.id;
+                    await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
+                } else {
+                    // In Demo mode, we just update the finalAmount for recording
+                    finalAmount = precisionAmount;
+                }
             } catch (error: any) {
                 const errorMsg = error.message || 'Unknown exchange error';
                 console.error(`[BotEngine] Trade failed: ${errorMsg}`);
                 await this.logError(bot.id, `Trade failed: ${errorMsg}`);
                 await this.createAlert(bot.id, 'ERROR', `Failed to execute buy order: ${errorMsg}`);
-                return; // Don't record in DB if real order failed
+                return;
             }
         }
 
         // Record in DB (for both Demo and Real modes)
         try {
+            const finalTradeValue = finalAmount * price;
             await prisma.$transaction([
                 prisma.position.create({
                     data: {
                         botId: bot.id,
                         symbol: bot.symbol,
-                        amount: amount,
+                        amount: finalAmount,
                         entryPrice: price,
                         status: 'OPEN'
                     }
@@ -450,9 +489,9 @@ export class BotEngine {
                         botId: bot.id,
                         symbol: bot.symbol,
                         side: 'BUY',
-                        amount: amount,
+                        amount: finalAmount,
                         price: price,
-                        total: tradeValue,
+                        total: finalTradeValue,
                         orderId: orderId
                     }
                 }),
@@ -464,7 +503,7 @@ export class BotEngine {
                 })
             ]);
 
-            await this.logInfo(bot.id, `[${bot.mode}] Bought ${amount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)} (Total: $${tradeValue.toFixed(2)})`);
+            await this.logInfo(bot.id, `[${bot.mode}] Bought ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)} (Total: $${finalTradeValue.toFixed(2)})`);
         } catch (error: any) {
             await this.logError(bot.id, `Failed to record trade in database: ${error.message}`);
         }

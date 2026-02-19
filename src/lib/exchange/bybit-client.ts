@@ -134,6 +134,27 @@ export class BybitClient {
     }
 
     /**
+     * Get market limits for a symbol (min quantity, min price, etc.)
+     */
+    async getMarketLimits(symbol: string) {
+        try {
+            await this.client.loadMarkets();
+            const market = this.client.market(symbol);
+            return {
+                minQty: market.limits?.amount?.min || 0,
+                maxQty: market.limits?.amount?.max,
+                minPrice: market.limits?.price?.min,
+                maxPrice: market.limits?.price?.max,
+                minNotional: market.limits?.cost?.min || 0,
+                precision: market.precision
+            };
+        } catch (error: any) {
+            console.error(`[BybitClient] Failed to fetch market limits for ${symbol}:`, error.message);
+            return null;
+        }
+    }
+
+    /**
      * Subscribe to real-time ticker updates via WebSocket
      */
     async subscribeTicker(symbol: string, callback: (price: number) => void) {

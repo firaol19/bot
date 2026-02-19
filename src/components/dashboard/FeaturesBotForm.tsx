@@ -160,6 +160,15 @@ export default function FeaturesBotForm() {
                                         <option value="ETH/USDT">ETH/USDT (Ethereum)</option>
                                         <option value="SOL/USDT">SOL/USDT (Solana)</option>
                                         <option value="XRP/USDT">XRP/USDT (Ripple)</option>
+                                        <option value="DOGE/USDT">DOGE/USDT (Dogecoin)</option>
+                                        <option value="LINK/USDT">LINK/USDT (Chainlink)</option>
+                                        <option value="ADA/USDT">ADA/USDT (Cardano)</option>
+                                        <option value="MATIC/USDT">MATIC/USDT (Polygon)</option>
+                                        <option value="AVAX/USDT">AVAX/USDT (Avalanche)</option>
+                                        <option value="DOT/USDT">DOT/USDT (Polkadot)</option>
+                                        <option value="NEAR/USDT">NEAR/USDT (Near Protocol)</option>
+                                        <option value="SUI/USDT">SUI/USDT (Sui)</option>
+                                        <option value="LTC/USDT">LTC/USDT (Litecoin)</option>
                                     </select>
                                 </div>
                             </div>

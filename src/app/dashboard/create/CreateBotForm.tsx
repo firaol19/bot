@@ -163,6 +163,14 @@ export default function CreateBotForm() {
                             <option value="SOL/USDT">SOL/USDT</option>
                             <option value="XRP/USDT">XRP/USDT</option>
                             <option value="DOGE/USDT">DOGE/USDT</option>
+                            <option value="LINK/USDT">LINK/USDT</option>
+                            <option value="ADA/USDT">ADA/USDT</option>
+                            <option value="MATIC/USDT">MATIC/USDT</option>
+                            <option value="AVAX/USDT">AVAX/USDT</option>
+                            <option value="DOT/USDT">DOT/USDT</option>
+                            <option value="NEAR/USDT">NEAR/USDT</option>
+                            <option value="SUI/USDT">SUI/USDT</option>
+                            <option value="LTC/USDT">LTC/USDT</option>
                         </select>
                     </div>
                 </div>
