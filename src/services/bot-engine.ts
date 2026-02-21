@@ -248,7 +248,7 @@ export class BotEngine {
             });
         }
 
-        // Check Risk Management for all positions
+        // 1. Check Risk Management for all positions
         for (const position of bot.positions) {
             const riskSummary = this.riskManager.getPositionRiskSummary(
                 { ...position, currentPrice },
@@ -288,22 +288,28 @@ export class BotEngine {
             }
         }
 
-        // Check Buy Conditions
-        const lastPosition = bot.positions[bot.positions.length - 1];
-        const lastEntry = lastPosition ? lastPosition.entryPrice : 0;
-
-        // Determine if we should buy
+        // 2. Check Buy Conditions
         const isFirstTrade = bot.positions.length === 0;
         let shouldBuy = false;
+        let detectedTrend: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
 
         if (bot.type === 'FEATURES') {
             const mfStrategy = this.strategy as MultiTimeframeStrategy;
 
-            // 🚀 Stability Fix: Throttle strategy execution to every 60 seconds
-            // This prevents overwhelming the exchange (especially demo servers) and rate limits
+            // 🚀 Analysis Suppression: If there is an open position, skip scanning for new entries
+            if (!isFirstTrade) {
+                // Update price but return early
+                await prisma.bot.update({
+                    where: { id: bot.id },
+                    data: { lastPrice: currentPrice } as any
+                });
+                return;
+            }
+
+            // 🚀 Stability Fix: Throttle strategy execution to every 15 seconds
             const now = Date.now();
             const lastCheckTime = (this as any).lastStrategyCheckTime || 0;
-            if (now - lastCheckTime < 60000) return; // Wait at least 60s between full strategy scans
+            if (now - lastCheckTime < 15000) return;
             (this as any).lastStrategyCheckTime = now;
 
             // Periodic Analysis Logging (Every 5 minutes)
@@ -320,22 +326,25 @@ export class BotEngine {
 
             // 1. Check 15m Trend
             const klines15m = await this.exchange?.getKlines(bot.symbol, '15m', 100);
-            const trend = mfStrategy.checkTrend(klines15m || []);
+            detectedTrend = mfStrategy.checkTrend(klines15m || []);
 
-            if (trend !== 'NONE') {
+            if (detectedTrend !== 'NONE') {
                 // 2. Check 5m Setup
                 const klines5m = await this.exchange?.getKlines(bot.symbol, '5m', 100);
-                const setupOk = mfStrategy.checkSetup(klines5m || [], trend);
+                const setupOk = mfStrategy.checkSetup(klines5m || [], detectedTrend);
 
                 if (setupOk) {
                     // 3. Check 1m Entry
                     const klines1m = await this.exchange?.getKlines(bot.symbol, '1m', 50);
-                    shouldBuy = mfStrategy.checkEntry(klines1m || [], trend);
+                    shouldBuy = mfStrategy.checkEntry(klines1m || [], detectedTrend);
                 }
             }
         } else {
             // Original Grid Strategy Buy logic
+            const lastPosition = bot.positions[bot.positions.length - 1];
+            const lastEntry = lastPosition ? lastPosition.entryPrice : 0;
             shouldBuy = isFirstTrade || (this.strategy as GridStrategy).shouldBuy(currentPrice, lastEntry, bot.buyDrop);
+            if (shouldBuy) detectedTrend = 'LONG';
         }
 
         if (shouldBuy) {
@@ -351,15 +360,13 @@ export class BotEngine {
             if (this.exchange) {
                 try {
                     const balance = await this.exchange.getBalance();
-                    // Unified / Linear balance check
                     if (bot.type === 'FEATURES') {
-                        // For Linear, balance is often under 'USDT' in the 'total' or 'free' section of the contract wallet
                         exchangeFreeBalance = balance.total?.USDT || balance.USDT?.free || 0;
                     } else if (balance['USDT']) {
                         exchangeFreeBalance = balance['USDT'].free || 0;
                     }
 
-                    // Sync capital for heart-beat
+                    // Sync activity
                     await prisma.bot.update({
                         where: { id: bot.id },
                         data: { lastActivityAt: new Date() }
@@ -370,12 +377,11 @@ export class BotEngine {
             }
 
             // Calculate cost for this trade
-            // For Features, we use ALL capital. For Grid, we use buyPercentage.
             let tradeCost = bot.type === 'FEATURES' ? bot.capital : (bot.capital * (bot.buyPercentage / 100));
 
             // Adjust trade cost if available balance is lower
             if (tradeCost > exchangeFreeBalance) {
-                if (exchangeFreeBalance >= 1.5) { // Increased min size to 1.5 to safely exceed Bybit's 1.10
+                if (exchangeFreeBalance >= 1.5) {
                     await this.logWarning(bot.id, `Available balance ($${exchangeFreeBalance.toFixed(2)}) is less than target trade size ($${tradeCost.toFixed(2)}). Using remaining balance instead.`);
                     tradeCost = exchangeFreeBalance;
                 } else {
@@ -388,9 +394,8 @@ export class BotEngine {
                 await this.logInfo(bot.id, `🚀 Initial buy triggered for ${bot.symbol} at market price`);
             }
 
-            // Reverse calculate totalCapital for buy() logic or just update buy() calls
             const totalCapitalForBuy = bot.type === 'FEATURES' ? tradeCost : (tradeCost / (bot.buyPercentage / 100));
-            await this.buy(bot, currentPrice, totalCapitalForBuy);
+            await this.buy(bot, currentPrice, totalCapitalForBuy, detectedTrend as 'LONG' | 'SHORT');
         }
 
         // Update last seen price
@@ -400,7 +405,7 @@ export class BotEngine {
         });
     }
 
-    private async buy(bot: any, price: number, totalCapital: number) {
+    private async buy(bot: any, price: number, totalCapital: number, trend: 'LONG' | 'SHORT' = 'LONG') {
         // Calculate amount, passing leverage for FEATURES bots
         const amount = bot.type === 'FEATURES'
             ? (this.strategy as MultiTimeframeStrategy).calculatePositionSize(totalCapital, bot.buyPercentage, price, bot.leverage)
@@ -409,7 +414,8 @@ export class BotEngine {
         const tradeValue = amount * price;
 
         // Validate trade size
-        const validation = this.riskManager.validateTradeSize(tradeValue, totalCapital);
+        const leverage = bot.type === 'FEATURES' ? (bot.leverage || 1) : 1;
+        const validation = this.riskManager.validateTradeSize(tradeValue, totalCapital, leverage);
         if (!validation.valid) {
             await this.logWarning(bot.id, `Trade validation failed: ${validation.reason}`);
             return;
@@ -427,13 +433,11 @@ export class BotEngine {
                     const minQty = limits.minQty || 0;
                     const minNotional = limits.minNotional || 0;
 
-                    // 1. Check minQty
                     if (finalAmount < minQty) {
                         await this.logInfo(bot.id, `Order quantity (${finalAmount}) is below minimum (${minQty}). Adjusting to minimum.`);
                         finalAmount = minQty;
                     }
 
-                    // 2. Check minNotional (approximate)
                     const estimatedNotional = finalAmount * price;
                     if (estimatedNotional < minNotional) {
                         const requiredAmount = minNotional / price;
@@ -441,10 +445,8 @@ export class BotEngine {
                         finalAmount = requiredAmount;
                     }
 
-                    // 3. Final sanity check: does adjusted amount exceed available capital significantly?
                     const finalValue = finalAmount * price;
                     if (finalValue > totalCapital * 1.5 && bot.type !== 'FEATURES') {
-                        // For non-features bots (grid), we don't want to double the intended risk automatically
                         await this.logError(bot.id, `Adjusted trade value ($${finalValue.toFixed(2)}) exceeds allocation safety limit. Skipping trade.`);
                         return;
                     }
@@ -453,13 +455,33 @@ export class BotEngine {
                 // Apply exchange precision
                 const precisionAmount = parseFloat(this.exchange.amountToPrecision(bot.symbol, finalAmount));
 
+                // Determine order side for Features (Buy for LONG, Sell for SHORT)
+                const side = bot.type === 'FEATURES'
+                    ? (trend === 'LONG' ? 'buy' : 'sell')
+                    : 'buy';
+
+                // Setup Bybit SL/TP params
+                const params: any = {};
+                if (bot.type === 'FEATURES' && (bot.stopLossPercentage || bot.takeProfitPercentage)) {
+                    // Calculate absolute prices for SL/TP
+                    if (bot.stopLossPercentage) {
+                        params.stopLoss = trend === 'LONG'
+                            ? (price * (1 - bot.stopLossPercentage / 100)).toFixed(2)
+                            : (price * (1 + bot.stopLossPercentage / 100)).toFixed(2);
+                    }
+                    if (bot.takeProfitPercentage) {
+                        params.takeProfit = trend === 'LONG'
+                            ? (price * (1 + bot.takeProfitPercentage / 100)).toFixed(2)
+                            : (price * (1 - bot.takeProfitPercentage / 100)).toFixed(2);
+                    }
+                }
+
                 if (bot.mode === 'REAL') {
-                    await this.logInfo(bot.id, `Executing ${bot.mode} BUY order: ${precisionAmount} ${bot.symbol} (Value: $${(precisionAmount * price).toFixed(2)})`);
-                    const order = await this.exchange.createOrder(bot.symbol, 'market', 'buy', precisionAmount);
+                    await this.logInfo(bot.id, `Executing ${bot.mode} ${side.toUpperCase()} order: ${precisionAmount} ${bot.symbol} (Value: $${(precisionAmount * price).toFixed(2)})`);
+                    const order = await this.exchange.createOrder(bot.symbol, 'market', side, precisionAmount, undefined, params);
                     orderId = order.id;
                     await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
                 } else {
-                    // In Demo mode, we just update the finalAmount for recording
                     finalAmount = precisionAmount;
                 }
             } catch (error: any) {
@@ -471,7 +493,7 @@ export class BotEngine {
             }
         }
 
-        // Record in DB (for both Demo and Real modes)
+        // Record in DB
         try {
             const finalTradeValue = finalAmount * price;
             await prisma.$transaction([
@@ -481,14 +503,15 @@ export class BotEngine {
                         symbol: bot.symbol,
                         amount: finalAmount,
                         entryPrice: price,
+                        side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'LONG' : 'SHORT') : 'LONG',
                         status: 'OPEN'
-                    }
+                    } as any
                 }),
                 prisma.trade.create({
                     data: {
                         botId: bot.id,
                         symbol: bot.symbol,
-                        side: 'BUY',
+                        side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'BUY' : 'SELL') : 'BUY',
                         amount: finalAmount,
                         price: price,
                         total: finalTradeValue,
@@ -503,29 +526,34 @@ export class BotEngine {
                 })
             ]);
 
-            await this.logInfo(bot.id, `[${bot.mode}] Bought ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)} (Total: $${finalTradeValue.toFixed(2)})`);
+            await this.logInfo(bot.id, `[${bot.mode}] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)}`);
         } catch (error: any) {
             await this.logError(bot.id, `Failed to record trade in database: ${error.message}`);
         }
     }
 
     private async sell(bot: any, position: any, price: number, reason: string = 'GRID_SELL') {
-        const profit = (price - position.entryPrice) * position.amount;
+        const isLong = position.side !== 'SHORT';
+        const profit = isLong
+            ? (price - position.entryPrice) * position.amount
+            : (position.entryPrice - price) * position.amount;
 
         // Execute Real Trade
         let orderId: string | undefined;
         if (bot.mode === 'REAL' && this.exchange) {
             try {
-                await this.logInfo(bot.id, `Executing REAL SELL order: ${position.amount} ${bot.symbol} at $${price} (${reason})`);
+                // To close a LONG, we SELL. To close a SHORT, we BUY.
+                const side = isLong ? 'sell' : 'buy';
+                await this.logInfo(bot.id, `Executing REAL ${side.toUpperCase()} order to close ${position.side} position (${reason})`);
 
-                const order = await this.exchange.createOrder(bot.symbol, 'market', 'sell', position.amount);
+                const order = await this.exchange.createOrder(bot.symbol, 'market', side, position.amount);
                 orderId = order.id;
 
-                await this.logInfo(bot.id, `Real sell order executed successfully. Order ID: ${orderId}`);
+                await this.logInfo(bot.id, `Real close order executed successfully. Order ID: ${orderId}`);
             } catch (error: any) {
-                await this.logError(bot.id, `Real sell order failed: ${error.message}`);
-                await this.createAlert(bot.id, 'ERROR', `Failed to execute sell order: ${error.message}`);
-                return; // Don't record in DB if real order failed
+                await this.logError(bot.id, `Real close order failed: ${error.message}`);
+                await this.createAlert(bot.id, 'ERROR', `Failed to execute close order: ${error.message}`);
+                return;
             }
         }
 
@@ -555,7 +583,7 @@ export class BotEngine {
                     data: {
                         botId: bot.id,
                         symbol: bot.symbol,
-                        side: 'SELL',
+                        side: isLong ? 'SELL' : 'BUY',
                         amount: position.amount,
                         price: price,
                         total: position.amount * price,

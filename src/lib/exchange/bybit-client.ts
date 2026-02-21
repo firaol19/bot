@@ -52,11 +52,23 @@ export class BybitClient {
     }
 
     /**
+     * Normalize symbol for Linear contracts (adds :USDT suffix if missing)
+     */
+    private normalizeSymbol(symbol: string): string {
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        if (isLinear && symbol.includes('/') && !symbol.includes(':')) {
+            return `${symbol}:USDT`;
+        }
+        return symbol;
+    }
+
+    /**
      * Validate connection to Bybit API
      */
     async validateConnection(): Promise<boolean> {
         try {
             await this.client.fetchTime();
+            await this.client.loadMarkets(); // Load markets to ensure correct symbol/category mapping
             return true;
         } catch (error: any) {
             console.error('[BybitClient] Connection validation failed:', error.message);
@@ -65,7 +77,7 @@ export class BybitClient {
     }
 
     async getTicker(symbol: string) {
-        return await this.client.fetchTicker(symbol);
+        return await this.client.fetchTicker(this.normalizeSymbol(symbol));
     }
 
     async getBalance() {
@@ -74,10 +86,14 @@ export class BybitClient {
         return await this.client.fetchBalance(params);
     }
 
-    async createOrder(symbol: string, type: 'limit' | 'market', side: 'buy' | 'sell', amount: number, price?: number) {
+    async createOrder(symbol: string, type: 'limit' | 'market', side: 'buy' | 'sell', amount: number, price?: number, params: any = {}) {
+        const normalizedSymbol = this.normalizeSymbol(symbol);
         const isLinear = this.client.options['defaultType'] === 'linear';
         const category = isLinear ? 'linear' : 'spot';
-        return await this.client.createOrder(symbol, type, side, amount, price, { category });
+        return await this.client.createOrder(normalizedSymbol, type, side, amount, price, {
+            category,
+            ...params
+        });
     }
 
     async getPositions(symbol?: string) {
@@ -90,20 +106,16 @@ export class BybitClient {
 
     async getKlines(symbol: string, timeframe: string, limit?: number) {
         // ✅ FIX: In Bybit V5, market data needs category (spot, linear, inverse, option)
-        // Defaulting to linear for futures if defaultType is linear
+        const normalizedSymbol = this.normalizeSymbol(symbol);
         const isLinear = this.client.options['defaultType'] === 'linear';
         const category = isLinear ? 'linear' : 'spot';
 
-        // Format symbol for Bybit V5 if it has a slash
-        const bybitSymbol = symbol.replace('/', '');
-
         try {
-            // Use direct request or ohlcv depending on CCXT version stability for V5
-            return await this.client.fetchOHLCV(symbol, timeframe, undefined, limit, {
+            return await this.client.fetchOHLCV(normalizedSymbol, timeframe, undefined, limit, {
                 category: category
             });
         } catch (error: any) {
-            console.error(`[BybitClient] Kline fetch failed for ${symbol}:`, error.message);
+            console.error(`[BybitClient] Kline fetch failed for ${normalizedSymbol}:`, error.message);
             throw error;
         }
     }
@@ -113,8 +125,9 @@ export class BybitClient {
      */
     async setLeverage(symbol: string, leverage: number) {
         try {
+            const normalizedSymbol = this.normalizeSymbol(symbol);
             // Note: In Unified account, leverage is often set per category/symbol
-            return await this.client.setLeverage(leverage, symbol);
+            return await this.client.setLeverage(leverage, normalizedSymbol);
         } catch (error: any) {
             // Some errors are acceptable (e.g., leverage already set)
             if (error.message.includes('not modified') || error.message.includes('leverage is same')) {

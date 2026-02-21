@@ -62,11 +62,11 @@ export class MultiTimeframeStrategy {
         const ema20 = this.calculateEMA(prices, 20);
         const ema50 = this.calculateEMA(prices, 50);
 
-        // Distance check: price must be near EMAs (e.g., within 0.1%)
+        // Distance check: price must be near EMAs (relaxed to 0.5% threshold)
         const dist20 = Math.abs(currentPrice - ema20) / ema20;
         const dist50 = Math.abs(currentPrice - ema50) / ema50;
 
-        if (dist20 > 0.002 && dist50 > 0.002) return false; // Too far (0.2% threshold)
+        if (dist20 > 0.005 && dist50 > 0.005) return false; // Too far (0.5% threshold)
 
         // Volume check: volume should be decreasing or lower than average during pullback
         const avgVolume = volumes.slice(-10, -1).reduce((a, b) => a + b, 0) / 9;
@@ -154,7 +154,8 @@ export class MultiTimeframeStrategy {
 
             if (trend === 'NONE') {
                 report.decision = 'WAITING_FOR_TREND';
-                report.reason = 'EMA 20/50 must align on 15m timeframe.';
+                const trendDesc = ema20_15m > ema50_15m ? 'EMA20 > EMA50 (Bullish bias)' : (ema20_15m < ema50_15m ? 'EMA20 < EMA50 (Bearish bias)' : 'EMAs flat');
+                report.reason = `15m Rule: ${trendDesc}, but price ($${prices15m[prices15m.length - 1].toFixed(2)}) is not yet aligned with the EMAs.`;
                 return report;
             }
 
@@ -179,7 +180,16 @@ export class MultiTimeframeStrategy {
 
             if (!setupOk) {
                 report.decision = 'WAITING_FOR_SETUP';
-                report.reason = 'Waiting for price to pull back toward EMAs with low volume.';
+                const dist20 = (Math.abs(prices5m[prices5m.length - 1] - ema20_5m) / ema20_5m * 100).toFixed(2);
+                const dist50 = (Math.abs(prices5m[prices5m.length - 1] - ema50_5m) / ema50_5m * 100).toFixed(2);
+
+                if (parseFloat(dist20) > 0.5 && parseFloat(dist50) > 0.5) {
+                    report.reason = `5m Rule: Price is too far from EMAs (Dist: ${dist20}% / ${dist50}%). Waiting for pullback to within 0.5%.`;
+                } else if (volumes5m[volumes5m.length - 1] > avgVol5m * 1.2) {
+                    report.reason = `5m Rule: Volume spike detected (${volumes5m[volumes5m.length - 1].toFixed(2)} > ${avgVol5m.toFixed(2)} avg). Waiting for volume to decrease.`;
+                } else {
+                    report.reason = '5m Rule: Waiting for candle confirmation or weak pullback signal.';
+                }
                 return report;
             }
 
@@ -199,7 +209,9 @@ export class MultiTimeframeStrategy {
 
             if (!entryOk) {
                 report.decision = 'MONITORING_ENTRY';
-                report.reason = 'Setup confirmed. Monitoring 1m timeframe for entry signal.';
+                const last = klines1m[klines1m.length - 1];
+                const type = last[4] > last[1] ? 'Bullish' : 'Bearish';
+                report.reason = `1m Rule: Setup confirmed. Waiting for ${trend === 'LONG' ? 'Bullish' : 'Bearish'} Engulfing or strong close. Current candle: ${type}.`;
                 return report;
             }
 

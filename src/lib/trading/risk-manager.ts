@@ -92,7 +92,7 @@ export class RiskManager {
     /**
      * Validate if trade size is acceptable
      */
-    validateTradeSize(tradeSize: number, availableBalance: number, minTradeSize: number = 1.1): {
+    validateTradeSize(tradeSize: number, availableBalance: number, leverage: number = 1, minTradeSize: number = 1.1): {
         valid: boolean;
         reason?: string;
     } {
@@ -100,8 +100,9 @@ export class RiskManager {
             return { valid: false, reason: `Trade size ($${tradeSize.toFixed(2)}) below minimum ($${minTradeSize})` };
         }
 
-        if (tradeSize > availableBalance) {
-            return { valid: false, reason: `Insufficient balance. Required: $${tradeSize.toFixed(2)}, Available: $${availableBalance.toFixed(2)}` };
+        const maxAllowedSize = availableBalance * leverage;
+        if (tradeSize > maxAllowedSize) {
+            return { valid: false, reason: `Insufficient margin. Required: $${tradeSize.toFixed(2)}, Max Available (with ${leverage}x leverage): $${maxAllowedSize.toFixed(2)}` };
         }
 
         return { valid: true };
