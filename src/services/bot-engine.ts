@@ -194,9 +194,49 @@ export class BotEngine {
 
             await this.logInfo(bot.id, `📊 Periodic Analysis Complete: ${report.decision}`);
 
-            // If signal is ready, log detailed info
+            // ✅ FIX: If signal is ready, extract trend and execute a trade
             if (report.decision === 'SIGNAL_READY') {
-                await this.createAlert(bot.id, 'INFO', 'Trading signal detected! All timeframes aligned.');
+                await this.createAlert(bot.id, 'INFO', 'Trading signal detected! All timeframes aligned. Executing trade...');
+
+                // Read trend directly from report (set in getAnalysisReport when SIGNAL_READY)
+                const trend: 'LONG' | 'SHORT' = report.trend === 'SHORT' ? 'SHORT' : 'LONG';
+
+                // Get current price from exchange
+                const ticker = await this.exchange!.getKlines(bot.symbol, '1m', 2);
+                const currentPrice: number = ticker?.[ticker.length - 1]?.[4] || 0;
+
+                if (currentPrice <= 0) {
+                    await this.logError(bot.id, 'Could not determine current price for SIGNAL_READY trade.');
+                    return;
+                }
+
+                // Check position limit
+                if (!this.riskManager.canOpenPosition(bot.positions?.length || 0)) {
+                    await this.logWarning(bot.id, `Position limit reached. Cannot open new ${trend} position.`);
+                    return;
+                }
+
+                // Calculate trade cost
+                let exchangeFreeBalance = bot.capital;
+                try {
+                    const balance = await this.exchange!.getBalance();
+                    exchangeFreeBalance = balance.total?.USDT || balance.USDT?.free || bot.capital;
+                } catch (e: any) {
+                    await this.logWarning(bot.id, `Could not fetch balance, using configured capital: ${e.message}`);
+                }
+
+                let tradeCost = bot.capital;
+                if (tradeCost > exchangeFreeBalance) {
+                    if (exchangeFreeBalance >= 1.5) {
+                        tradeCost = exchangeFreeBalance;
+                    } else {
+                        await this.logError(bot.id, `Insufficient balance ($${exchangeFreeBalance.toFixed(2)}) to open ${trend} position.`);
+                        return;
+                    }
+                }
+
+                await this.logInfo(bot.id, `🚀 SIGNAL_READY: Opening ${trend} position at $${currentPrice.toFixed(2)}`);
+                await this.buy(bot, currentPrice, tradeCost, trend);
             }
         } catch (error: any) {
             await this.logError(bot.id, `Failed to perform periodic analysis: ${error.message}`);
@@ -312,32 +352,25 @@ export class BotEngine {
             if (now - lastCheckTime < 15000) return;
             (this as any).lastStrategyCheckTime = now;
 
-            // Periodic Analysis Logging (Every 5 minutes)
-            const lastLogTime = (this as any).lastAnalysisLogTime || 0;
-            if (now - lastLogTime > 5 * 60 * 1000) {
-                (this as any).lastAnalysisLogTime = now;
-                try {
-                    const report = await mfStrategy.getAnalysisReport(bot.symbol, this.exchange);
-                    await this.logAnalysis(bot.id, `MTF Analysis: ${report.decision}`, report);
-                } catch (logError: any) {
-                    console.error('[BotEngine] Failed to log periodic analysis:', logError.message);
+            // ✅ FIX: Use getAnalysisReport as the single source of truth for signal detection
+            // This ensures the price-tick path and periodic-analysis path share the same logic.
+            try {
+                const report = await mfStrategy.getAnalysisReport(bot.symbol, this.exchange);
+
+                // Log every analysis to DB
+                await this.logAnalysis(bot.id, `MTF Analysis: ${report.decision}`, report);
+
+                if (report.decision === 'SIGNAL_READY') {
+                    // Read trend directly from report
+                    detectedTrend = report.trend === 'SHORT' ? 'SHORT' : 'LONG';
+                    shouldBuy = true;
+                } else {
+                    // Not ready yet — log why and skip
+                    return;
                 }
-            }
-
-            // 1. Check 15m Trend
-            const klines15m = await this.exchange?.getKlines(bot.symbol, '15m', 100);
-            detectedTrend = mfStrategy.checkTrend(klines15m || []);
-
-            if (detectedTrend !== 'NONE') {
-                // 2. Check 5m Setup
-                const klines5m = await this.exchange?.getKlines(bot.symbol, '5m', 100);
-                const setupOk = mfStrategy.checkSetup(klines5m || [], detectedTrend);
-
-                if (setupOk) {
-                    // 3. Check 1m Entry
-                    const klines1m = await this.exchange?.getKlines(bot.symbol, '1m', 50);
-                    shouldBuy = mfStrategy.checkEntry(klines1m || [], detectedTrend);
-                }
+            } catch (analysisError: any) {
+                await this.logError(bot.id, `MTF analysis failed: ${analysisError.message}`);
+                return;
             }
         } else {
             // Original Grid Strategy Buy logic

@@ -66,7 +66,7 @@ export class MultiTimeframeStrategy {
         const dist20 = Math.abs(currentPrice - ema20) / ema20;
         const dist50 = Math.abs(currentPrice - ema50) / ema50;
 
-        if (dist20 > 0.005 && dist50 > 0.005) return false; // Too far (0.5% threshold)
+        if (dist20 > 0.02 && dist50 > 0.02) return false; // Too far (2% threshold - realistic for crypto futures)
 
         // Volume check: volume should be decreasing or lower than average during pullback
         const avgVolume = volumes.slice(-10, -1).reduce((a, b) => a + b, 0) / 9;
@@ -216,6 +216,7 @@ export class MultiTimeframeStrategy {
             }
 
             report.decision = 'SIGNAL_READY';
+            report.trend = trend; // ✅ Expose trend directly for bot engine to use
             report.reason = 'All signals aligned. Ready to execute trade.';
             return report;
         } catch (error: any) {
