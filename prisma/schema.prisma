@@ -42,8 +42,11 @@ model Bot {
   takeProfitPercentage Float?    // % profit to trigger take profit
   maxPositions         Int       @default(10) // Maximum open positions
   maxDailyLoss         Float?    // Maximum loss allowed per day
+  maxDailyTrades       Int       @default(0) // Maximum trades allowed per day (0 = unlimited)
   trailingStopPercent  Float?    // Trailing stop percentage
   leverage            Int       @default(1)
+  strategyName        String?   // Name of specific strategy (TrendFollowing, Breakout, etc.)
+
   
   // API Keys (Encrypted)
   apiKey         String?
@@ -85,7 +88,9 @@ model Position {
   entryPrice Float
   currentPrice Float?
   pnl       Float?
+  side      String   @default("LONG") // LONG, SHORT
   status    String   @default("OPEN") // OPEN, CLOSED
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

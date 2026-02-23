@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { NotificationCenter } from '@/components/dashboard/NotificationCenter';
 
 export default function DashboardLayout({
     children,
@@ -7,13 +8,25 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex h-screen bg-gray-950 text-gray-100">
-            <Suspense fallback={<div className="hidden md:flex h-screen w-64 bg-gray-900 border-r border-gray-800" />}>
+        <div className="flex h-screen bg-[#05070a] text-gray-100 selection:bg-blue-500/30">
+            {/* Background Decorative Elements */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full" />
+            </div>
+
+            <Suspense fallback={<div className="hidden md:flex h-screen w-72 bg-gray-900 border-r border-gray-800" />}>
                 <Sidebar />
             </Suspense>
-            <main className="flex-1 overflow-y-auto p-4 pt-20 md:p-8 md:pt-8 pb-24 md:pb-8">
-                {children}
+
+            <main className="flex-1 overflow-y-auto relative z-10">
+                <NotificationCenter />
+                <div className="max-w-[1600px] mx-auto p-6 pt-24 md:p-10 md:pt-10 pb-32 md:pb-10">
+                    {children}
+                </div>
             </main>
         </div>
     );
 }
+
+

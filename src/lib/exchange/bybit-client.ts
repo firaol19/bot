@@ -168,6 +168,35 @@ export class BybitClient {
     }
 
     /**
+     * Get current funding rate for a symbol
+     */
+    async getFundingRate(symbol: string) {
+        try {
+            const normalizedSymbol = this.normalizeSymbol(symbol);
+            const fundingRate = await this.client.fetchFundingRate(normalizedSymbol);
+            return fundingRate.fundingRate;
+        } catch (error: any) {
+            console.error(`[BybitClient] Failed to fetch funding rate for ${symbol}:`, error.message);
+            return 0;
+        }
+    }
+
+    /**
+     * Get open interest for a symbol
+     */
+    async getOpenInterest(symbol: string) {
+        try {
+            const normalizedSymbol = this.normalizeSymbol(symbol);
+            const oi = await this.client.fetchOpenInterest(normalizedSymbol);
+            return oi.openInterestAmount;
+        } catch (error: any) {
+            console.error(`[BybitClient] Failed to fetch open interest for ${symbol}:`, error.message);
+            return 0;
+        }
+    }
+
+
+    /**
      * Subscribe to real-time ticker updates via WebSocket
      */
     async subscribeTicker(symbol: string, callback: (price: number) => void) {

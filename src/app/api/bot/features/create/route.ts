@@ -63,8 +63,11 @@ export async function POST(request: Request) {
                 exchange: body.exchange || 'bybit',
                 stopLossPercentage: body.stopLossPercentage,
                 takeProfitPercentage: body.takeProfitPercentage,
+                strategyName: body.strategyName || 'MultiTimeframe',
                 leverage: body.leverage || 1,
                 maxPositions: 1, // Features strategy handles one trade at a time
+                maxDailyTrades: body.maxDailyTrades,
+
                 apiKey: encrypt(apiKey),
                 apiSecret: encrypt(apiSecret),
                 startedAt: new Date()

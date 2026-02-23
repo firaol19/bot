@@ -17,20 +17,43 @@ export async function POST(
             console.warn(`[API] Warning while stopping bot ${botId}:`, error);
         }
 
-        // 2. Delete related records in a transaction
-        // Prisma will handle cascading if configured, but let's be explicit if not
-        await prisma.$transaction([
-            prisma.botLog.deleteMany({ where: { botId } }),
-            prisma.alert.deleteMany({ where: { botId } }),
-            prisma.trade.deleteMany({ where: { botId } }),
-            prisma.position.deleteMany({ where: { botId } }),
-            (prisma as any).marketAnalysis.deleteMany({ where: { botId } }),
-            prisma.bot.delete({ where: { id: botId } }),
-        ]);
+        // 2. Delete heavy records separately (Outside transaction to avoid long locks)
+        try {
+            await prisma.botLog.deleteMany({ where: { botId } });
+            console.log(`[API] BotLogs for ${botId} cleared`);
+        } catch (error: any) {
+            console.warn(`[API] Warning deleting bot logs (non-critical):`, error.message);
+        }
 
-        console.log(`[API] Bot ${botId} and all related data deleted successfully.`);
+        try {
+            if ((prisma as any).marketAnalysis) {
+                await (prisma as any).marketAnalysis.deleteMany({ where: { botId } });
+                console.log(`[API] MarketAnalysis for ${botId} cleared`);
+            }
+        } catch (error: any) {
+            console.warn(`[API] Warning deleting market analysis (non-critical):`, error.message);
+        }
+
+        // 3. Delete core records in a smaller transaction for integrity
+        try {
+            await prisma.$transaction([
+                prisma.alert.deleteMany({ where: { botId } }),
+                prisma.trade.deleteMany({ where: { botId } }),
+                prisma.position.deleteMany({ where: { botId } }),
+                prisma.bot.delete({ where: { id: botId } }),
+            ]);
+            console.log(`[API] Bot ${botId} and core related data deleted successfully.`);
+        } catch (error: any) {
+            // Handle P2025: Record to delete does not exist (idempotency)
+            if (error.code === 'P2025') {
+                console.log(`[API] Bot ${botId} was already deleted or does not exist.`);
+                return NextResponse.json({ success: true, message: 'Bot already deleted' });
+            }
+            throw error; // Re-throw other errors
+        }
 
         return NextResponse.json({ success: true, message: 'Bot deleted successfully' });
+
 
     } catch (error: any) {
         console.error('Error deleting bot:', error);

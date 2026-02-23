@@ -4,7 +4,9 @@ export interface RiskConfig {
     maxPositions?: number;
     maxDailyLoss?: number;
     trailingStopPercent?: number;
+    maxDailyTrades?: number;
 }
+
 
 export interface Position {
     id: string;
@@ -18,6 +20,8 @@ export class RiskManager {
     private config: RiskConfig;
     private dailyLoss: number = 0;
     private dailyLossResetTime: Date;
+    private dailyTradeCount: number = 0;
+
 
     constructor(config: RiskConfig = {}) {
         this.config = {
@@ -26,9 +30,12 @@ export class RiskManager {
             maxPositions: config.maxPositions || 10,
             maxDailyLoss: config.maxDailyLoss,
             trailingStopPercent: config.trailingStopPercent,
+            maxDailyTrades: config.maxDailyTrades || 0,
         };
         this.dailyLossResetTime = this.getNextDayStart();
+        this.dailyTradeCount = 0;
     }
+
 
     /**
      * Calculate stop loss price for a position
@@ -133,12 +140,39 @@ export class RiskManager {
      * Get current daily loss
      */
     getDailyLoss(): number {
-        if (new Date() >= this.dailyLossResetTime) {
-            this.dailyLoss = 0;
-            this.dailyLossResetTime = this.getNextDayStart();
-        }
+        this.checkDayReset();
         return this.dailyLoss;
     }
+
+    /**
+     * Record a trade and check daily trade limit
+     */
+    recordTrade(): boolean {
+        this.checkDayReset();
+        this.dailyTradeCount++;
+        return true;
+    }
+
+    /**
+     * Check if we can record another trade today
+     */
+    canTradeToday(): boolean {
+        this.checkDayReset();
+        if (!this.config.maxDailyTrades) return true;
+        return this.dailyTradeCount < this.config.maxDailyTrades;
+    }
+
+    /**
+     * Reset daily counters if it's a new day
+     */
+    private checkDayReset() {
+        if (new Date() >= this.dailyLossResetTime) {
+            this.dailyLoss = 0;
+            this.dailyTradeCount = 0;
+            this.dailyLossResetTime = this.getNextDayStart();
+        }
+    }
+
 
     /**
      * Calculate position P&L

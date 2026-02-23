@@ -23,7 +23,10 @@ export default function FeaturesBotForm() {
         mode: initialMode,
         type: 'FEATURES',
         buyPercentage: 100, // For Features bot, we use this to calculate risk
+        strategyName: 'MultiTimeframe',
+        maxDailyTrades: 0,
     });
+
 
     const [availableBalance, setAvailableBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(true);
@@ -154,8 +157,20 @@ export default function FeaturesBotForm() {
                                     <input type="text" required className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-700" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Master MTF Bot" />
                                 </div>
                                 <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-400 ml-1">Strategy Architecture</label>
+                                    <select className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer" value={formData.strategyName} onChange={e => setFormData({ ...formData, strategyName: e.target.value })}>
+                                        <option value="MultiTimeframe">MTF (Triple Window Confirmation)</option>
+                                        <option value="TrendFollowing">Trend-following (EMA + Market Structure)</option>
+                                        <option value="Breakout">Breakout (Bollinger Bands + Volume)</option>
+                                        <option value="MeanReversion">Mean Reversion (RSI + BB)</option>
+                                        <option value="FundingBias">Funding Rate + OI Bias</option>
+                                        <option value="SidewaysGrid">Grid Bot (Sideways Market Optimized)</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-400 ml-1">Trading Asset</label>
                                     <select className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer" value={formData.symbol} onChange={e => setFormData({ ...formData, symbol: e.target.value })}>
+
                                         <option value="BTC/USDT">BTC/USDT (Bitcoin)</option>
                                         <option value="ETH/USDT">ETH/USDT (Ethereum)</option>
                                         <option value="SOL/USDT">SOL/USDT (Solana)</option>
@@ -214,7 +229,13 @@ export default function FeaturesBotForm() {
                                         <ShieldCheck size={10} className="text-green-500" /> Requirement: ≤ $1.00 USDT risk
                                     </p>
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-400 ml-1">Daily Trade Limit</label>
+                                    <input type="number" min="0" step="1" className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" value={formData.maxDailyTrades} onChange={e => setFormData({ ...formData, maxDailyTrades: parseInt(e.target.value) || 0 })} />
+                                    <p className="text-[10px] text-gray-500 ml-1 italic">* 0 = Unlimited trades per day</p>
+                                </div>
                             </div>
+
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                                 <div className="space-y-2">

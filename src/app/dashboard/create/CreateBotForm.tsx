@@ -24,7 +24,11 @@ export default function CreateBotForm() {
         trailingStopPercent: 0,
         maxPositions: 10,
         maxDailyLoss: 0,
+        maxDailyTrades: 0,
+        type: 'FEATURES', // Default to FEATURES as requested
+        strategyName: 'MultiTimeframe',
     });
+
 
     const [availableBalance, setAvailableBalance] = useState(0);
     const [loadingBalance, setLoadingBalance] = useState(true);
@@ -152,12 +156,34 @@ export default function CreateBotForm() {
             <form onSubmit={handleSubmit} className="space-y-6 bg-gray-900 p-8 rounded-xl border border-gray-800">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Bot Type</label>
+                        <select className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                            <option value="FEATURES">Features Trading</option>
+                            <option value="GRID">Grid Trading</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Strategy</label>
+                        <select className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition" value={formData.strategyName} onChange={e => setFormData({ ...formData, strategyName: e.target.value })} disabled={formData.type !== 'FEATURES'}>
+                            <option value="MultiTimeframe">MTF (Classic Profitable)</option>
+                            <option value="TrendFollowing">Trend-following (EMA + structure)</option>
+                            <option value="Breakout">Breakout with volume confirmation</option>
+                            <option value="MeanReversion">Mean reversion in ranging markets</option>
+                            <option value="FundingBias">Funding-rate + open-interest based bias</option>
+                            <option value="SidewaysGrid">Grid bot (sideways markets)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                         <label className="block text-sm font-medium text-gray-400 mb-2">Bot Name</label>
-                        <input type="text" required className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. BTC Grid Scalper" />
+                        <input type="text" required className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. BTC Trend Follower" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-2">Symbol</label>
                         <select className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition" value={formData.symbol} onChange={e => setFormData({ ...formData, symbol: e.target.value })}>
+
                             <option value="BTC/USDT">BTC/USDT</option>
                             <option value="ETH/USDT">ETH/USDT</option>
                             <option value="SOL/USDT">SOL/USDT</option>
@@ -232,7 +258,13 @@ export default function CreateBotForm() {
                             <label className="block text-sm font-medium text-gray-400 mb-2">Max Daily Loss (USDT)</label>
                             <input type="number" step="0.01" min="0" className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-red-500 outline-none transition" value={formData.maxDailyLoss} onChange={e => setFormData({ ...formData, maxDailyLoss: Number(e.target.value) })} />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">Max Daily Trades</label>
+                            <input type="number" min="0" step="1" className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition" value={formData.maxDailyTrades} onChange={e => setFormData({ ...formData, maxDailyTrades: Number(e.target.value) })} />
+                            <p className="text-[10px] text-gray-500 mt-1">0 = Unlimited</p>
+                        </div>
                     </div>
+
                 </div>
 
                 <button type="submit" disabled={loading || loadingBalance || availableBalance === 0 || formData.capitalAllocation > availableBalance} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">

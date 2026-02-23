@@ -136,6 +136,8 @@ export async function POST(request: Request) {
                 data: {
                     name: body.name,
                     userId: user.id,
+                    type: body.type || 'GRID',
+                    strategyName: body.strategyName,
                     symbol: body.symbol,
                     capital: body.capital,
                     buyPercentage: body.buyPercentage,
@@ -150,11 +152,13 @@ export async function POST(request: Request) {
                     trailingStopPercent: body.trailingStopPercent,
                     maxPositions: body.maxPositions,
                     maxDailyLoss: body.maxDailyLoss,
+                    maxDailyTrades: body.maxDailyTrades,
                     apiKey: encrypt(apiKey),
                     apiSecret: encrypt(apiSecret),
                     totalBuys: 1,
                     startedAt: new Date()
                 }
+
             });
 
             await tx.position.create({

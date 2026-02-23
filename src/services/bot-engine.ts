@@ -4,6 +4,12 @@ import { GridStrategy } from '@/lib/trading/grid-strategy';
 import { MultiTimeframeStrategy } from '@/lib/trading/multi-timeframe-strategy';
 import { RiskManager } from '@/lib/trading/risk-manager';
 import { decrypt } from '@/lib/encryption';
+import { TrendFollowingStrategy } from '@/lib/trading/trend-following';
+import { BreakoutStrategy } from '@/lib/trading/breakout-volume';
+import { MeanReversionStrategy } from '@/lib/trading/mean-reversion';
+import { FundingRateStrategy } from '@/lib/trading/funding-oi-bias';
+import { SidewaysGridStrategy } from '@/lib/trading/sideways-grid';
+
 
 export class BotEngine {
     private botId: string;
@@ -11,7 +17,9 @@ export class BotEngine {
     private checkInterval: NodeJS.Timeout | null = null;
     private analysisInterval: NodeJS.Timeout | null = null; // New: periodic analysis timer
     private exchange: BybitClient | null = null;
-    private strategy: GridStrategy | MultiTimeframeStrategy;
+    private strategy: any; // Dynamic strategy instance
+
+
     private riskManager: RiskManager;
     private ws: any = null;
     private lastProcessedPrice: number = 0;
@@ -31,11 +39,31 @@ export class BotEngine {
         if (!bot) throw new Error('Bot not found');
 
         // Initialize strategy based on bot type
+        // Initialize strategy based on bot type and strategy name
         if (bot.type === 'FEATURES') {
-            this.strategy = new MultiTimeframeStrategy();
+            switch (bot.strategyName) {
+                case 'TrendFollowing':
+                    this.strategy = new TrendFollowingStrategy();
+                    break;
+                case 'Breakout':
+                    this.strategy = new BreakoutStrategy();
+                    break;
+                case 'MeanReversion':
+                    this.strategy = new MeanReversionStrategy();
+                    break;
+                case 'FundingBias':
+                    this.strategy = new FundingRateStrategy();
+                    break;
+                case 'SidewaysGrid':
+                    this.strategy = new SidewaysGridStrategy();
+                    break;
+                default:
+                    this.strategy = new MultiTimeframeStrategy();
+            }
         } else {
             this.strategy = new GridStrategy();
         }
+
 
         // Initialize risk manager with bot configuration
         this.riskManager = new RiskManager({
@@ -43,8 +71,10 @@ export class BotEngine {
             takeProfitPercentage: bot.takeProfitPercentage || undefined,
             maxPositions: bot.maxPositions,
             maxDailyLoss: bot.maxDailyLoss || undefined,
+            maxDailyTrades: bot.maxDailyTrades || undefined,
             trailingStopPercent: bot.trailingStopPercent || undefined,
         });
+
 
         // Initialize exchange client
         if (bot.apiKey && bot.apiSecret) {
@@ -152,12 +182,16 @@ export class BotEngine {
             // Only perform analysis if no open positions (for Features bots)
             if (bot.type === 'FEATURES' && bot.positions.length === 0) {
                 const now = Date.now();
-                // Run analysis every 5 minutes
-                if (now - this.lastAnalysisTime >= 5 * 60 * 1000) {
+                // Check strategy type for interval
+                const isExistingStrategy = !bot.strategyName || bot.strategyName === 'MultiTimeframe';
+                const interval = isExistingStrategy ? 5 * 60 * 1000 : 10 * 60 * 1000;
+
+                if (now - this.lastAnalysisTime >= interval) {
                     this.lastAnalysisTime = now;
                     await this.performPeriodicAnalysis(bot);
                 }
             }
+
         } catch (error: any) {
             console.error('[BotEngine] Periodic analysis error:', error.message);
         }
@@ -215,6 +249,13 @@ export class BotEngine {
                     await this.logWarning(bot.id, `Position limit reached. Cannot open new ${trend} position.`);
                     return;
                 }
+
+                // Check daily trade limit
+                if (!this.riskManager.canTradeToday()) {
+                    await this.logWarning(bot.id, `Daily trade limit reached (${bot.maxDailyTrades}). Cannot open new ${trend} position.`);
+                    return;
+                }
+
 
                 // Calculate trade cost
                 let exchangeFreeBalance = bot.capital;
@@ -388,6 +429,14 @@ export class BotEngine {
                 return;
             }
 
+            // Check daily trade limit
+            if (!this.riskManager.canTradeToday()) {
+                await this.logWarning(bot.id, `Daily trade limit reached (${bot.maxDailyTrades})`);
+                await this.createAlert(bot.id, 'TRADE_LIMIT', `Maximum daily trades (${bot.maxDailyTrades}) reached`);
+                return;
+            }
+
+
             // Verify we have enough balance on exchange (Safety Check)
             let exchangeFreeBalance = bot.capital;
             if (this.exchange) {
@@ -559,7 +608,9 @@ export class BotEngine {
                 })
             ]);
 
+            this.riskManager.recordTrade(); // Record trade in risk manager
             await this.logInfo(bot.id, `[${bot.mode}] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)}`);
+
         } catch (error: any) {
             await this.logError(bot.id, `Failed to record trade in database: ${error.message}`);
         }
