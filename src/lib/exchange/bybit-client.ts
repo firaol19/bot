@@ -173,7 +173,7 @@ export class BybitClient {
     async getFundingRate(symbol: string) {
         try {
             const normalizedSymbol = this.normalizeSymbol(symbol);
-            const fundingRate = await this.client.fetchFundingRate(normalizedSymbol);
+            const fundingRate = await this.client.fetchFundingRate(normalizedSymbol, { category: 'linear' });
             return fundingRate.fundingRate;
         } catch (error: any) {
             console.error(`[BybitClient] Failed to fetch funding rate for ${symbol}:`, error.message);
@@ -187,7 +187,7 @@ export class BybitClient {
     async getOpenInterest(symbol: string) {
         try {
             const normalizedSymbol = this.normalizeSymbol(symbol);
-            const oi = await this.client.fetchOpenInterest(normalizedSymbol);
+            const oi = await this.client.fetchOpenInterest(normalizedSymbol, { category: 'linear' });
             return oi.openInterestAmount;
         } catch (error: any) {
             console.error(`[BybitClient] Failed to fetch open interest for ${symbol}:`, error.message);

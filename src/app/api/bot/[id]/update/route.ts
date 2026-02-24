@@ -20,6 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             trailingStopPercent: body.trailingStopPercent,
             maxPositions: body.maxPositions,
             maxDailyLoss: body.maxDailyLoss,
+            maxDailyTrades: body.maxDailyTrades,
         };
 
         // Only update API keys if provided

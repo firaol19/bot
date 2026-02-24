@@ -24,6 +24,7 @@ export class BotEngine {
     private ws: any = null;
     private lastProcessedPrice: number = 0;
     private isExecuting: boolean = false;
+    private isBuying: boolean = false; // Add buying lock
     private lastAnalysisTime: number = 0; // Track last analysis timestamp
 
     constructor(botId: string) {
@@ -250,6 +251,12 @@ export class BotEngine {
                     return;
                 }
 
+                // ✅ FIX: Concurrent buy protection
+                if (this.isBuying) {
+                    await this.logInfo(bot.id, 'Trade already in progress, skipping duplicate buy signal.');
+                    return;
+                }
+
                 // Check daily trade limit
                 if (!this.riskManager.canTradeToday()) {
                     await this.logWarning(bot.id, `Daily trade limit reached (${bot.maxDailyTrades}). Cannot open new ${trend} position.`);
@@ -429,6 +436,12 @@ export class BotEngine {
                 return;
             }
 
+            // ✅ FIX: Concurrent buy protection
+            if (this.isBuying) {
+                await this.logInfo(bot.id, 'Trade already in progress, skipping duplicate buy signal.');
+                return;
+            }
+
             // Check daily trade limit
             if (!this.riskManager.canTradeToday()) {
                 await this.logWarning(bot.id, `Daily trade limit reached (${bot.maxDailyTrades})`);
@@ -503,116 +516,131 @@ export class BotEngine {
             return;
         }
 
-        // Execute Real Trade
-        let orderId: string | undefined;
-        let finalAmount = amount;
-
-        if (this.exchange) {
-            try {
-                // Check market limits (minQty, minNotional)
-                const limits = await this.exchange.getMarketLimits(bot.symbol);
-                if (limits) {
-                    const minQty = limits.minQty || 0;
-                    const minNotional = limits.minNotional || 0;
-
-                    if (finalAmount < minQty) {
-                        await this.logInfo(bot.id, `Order quantity (${finalAmount}) is below minimum (${minQty}). Adjusting to minimum.`);
-                        finalAmount = minQty;
-                    }
-
-                    const estimatedNotional = finalAmount * price;
-                    if (estimatedNotional < minNotional) {
-                        const requiredAmount = minNotional / price;
-                        await this.logInfo(bot.id, `Order value ($${estimatedNotional.toFixed(2)}) is below minimum notional ($${minNotional}). Adjusting quantity to ${requiredAmount.toFixed(6)}.`);
-                        finalAmount = requiredAmount;
-                    }
-
-                    const finalValue = finalAmount * price;
-                    if (finalValue > totalCapital * 1.5 && bot.type !== 'FEATURES') {
-                        await this.logError(bot.id, `Adjusted trade value ($${finalValue.toFixed(2)}) exceeds allocation safety limit. Skipping trade.`);
-                        return;
-                    }
-                }
-
-                // Apply exchange precision
-                const precisionAmount = parseFloat(this.exchange.amountToPrecision(bot.symbol, finalAmount));
-
-                // Determine order side for Features (Buy for LONG, Sell for SHORT)
-                const side = bot.type === 'FEATURES'
-                    ? (trend === 'LONG' ? 'buy' : 'sell')
-                    : 'buy';
-
-                // Setup Bybit SL/TP params
-                const params: any = {};
-                if (bot.type === 'FEATURES' && (bot.stopLossPercentage || bot.takeProfitPercentage)) {
-                    // Calculate absolute prices for SL/TP
-                    if (bot.stopLossPercentage) {
-                        params.stopLoss = trend === 'LONG'
-                            ? (price * (1 - bot.stopLossPercentage / 100)).toFixed(2)
-                            : (price * (1 + bot.stopLossPercentage / 100)).toFixed(2);
-                    }
-                    if (bot.takeProfitPercentage) {
-                        params.takeProfit = trend === 'LONG'
-                            ? (price * (1 + bot.takeProfitPercentage / 100)).toFixed(2)
-                            : (price * (1 - bot.takeProfitPercentage / 100)).toFixed(2);
-                    }
-                }
-
-                if (bot.mode === 'REAL') {
-                    await this.logInfo(bot.id, `Executing ${bot.mode} ${side.toUpperCase()} order: ${precisionAmount} ${bot.symbol} (Value: $${(precisionAmount * price).toFixed(2)})`);
-                    const order = await this.exchange.createOrder(bot.symbol, 'market', side, precisionAmount, undefined, params);
-                    orderId = order.id;
-                    await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
-                } else {
-                    finalAmount = precisionAmount;
-                }
-            } catch (error: any) {
-                const errorMsg = error.message || 'Unknown exchange error';
-                console.error(`[BotEngine] Trade failed: ${errorMsg}`);
-                await this.logError(bot.id, `Trade failed: ${errorMsg}`);
-                await this.createAlert(bot.id, 'ERROR', `Failed to execute buy order: ${errorMsg}`);
+        // ✅ FIX: Mandatory SL/TP for Features bots
+        if (bot.type === 'FEATURES') {
+            if (!bot.stopLossPercentage || bot.stopLossPercentage <= 0 || !bot.takeProfitPercentage || bot.takeProfitPercentage <= 0) {
+                await this.logError(bot.id, 'Trade aborted: Stop Loss and Take Profit must be configured for Features bots.');
+                await this.createAlert(bot.id, 'ERROR', 'Mandatory Stop Loss and Take Profit are missing. Please update bot settings.');
                 return;
             }
         }
 
-        // Record in DB
+        this.isBuying = true; // Set lock
         try {
-            const finalTradeValue = finalAmount * price;
-            await prisma.$transaction([
-                prisma.position.create({
-                    data: {
-                        botId: bot.id,
-                        symbol: bot.symbol,
-                        amount: finalAmount,
-                        entryPrice: price,
-                        side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'LONG' : 'SHORT') : 'LONG',
-                        status: 'OPEN'
-                    } as any
-                }),
-                prisma.trade.create({
-                    data: {
-                        botId: bot.id,
-                        symbol: bot.symbol,
-                        side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'BUY' : 'SELL') : 'BUY',
-                        amount: finalAmount,
-                        price: price,
-                        total: finalTradeValue,
-                        orderId: orderId
+
+            // Execute Real Trade
+            let orderId: string | undefined;
+            let finalAmount = amount;
+
+            if (this.exchange) {
+                try {
+                    // Check market limits (minQty, minNotional)
+                    const limits = await this.exchange.getMarketLimits(bot.symbol);
+                    if (limits) {
+                        const minQty = limits.minQty || 0;
+                        const minNotional = limits.minNotional || 0;
+
+                        if (finalAmount < minQty) {
+                            await this.logInfo(bot.id, `Order quantity (${finalAmount}) is below minimum (${minQty}). Adjusting to minimum.`);
+                            finalAmount = minQty;
+                        }
+
+                        const estimatedNotional = finalAmount * price;
+                        if (estimatedNotional < minNotional) {
+                            const requiredAmount = minNotional / price;
+                            await this.logInfo(bot.id, `Order value ($${estimatedNotional.toFixed(2)}) is below minimum notional ($${minNotional}). Adjusting quantity to ${requiredAmount.toFixed(6)}.`);
+                            finalAmount = requiredAmount;
+                        }
+
+                        const finalValue = finalAmount * price;
+                        if (finalValue > totalCapital * 1.5 && bot.type !== 'FEATURES') {
+                            await this.logError(bot.id, `Adjusted trade value ($${finalValue.toFixed(2)}) exceeds allocation safety limit. Skipping trade.`);
+                            return;
+                        }
                     }
-                }),
-                prisma.bot.update({
-                    where: { id: bot.id },
-                    data: {
-                        totalBuys: { increment: 1 }
-                    } as any
-                })
-            ]);
 
-            this.riskManager.recordTrade(); // Record trade in risk manager
-            await this.logInfo(bot.id, `[${bot.mode}] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)}`);
+                    // Apply exchange precision
+                    const precisionAmount = parseFloat(this.exchange.amountToPrecision(bot.symbol, finalAmount));
 
-        } catch (error: any) {
-            await this.logError(bot.id, `Failed to record trade in database: ${error.message}`);
+                    // Determine order side for Features (Buy for LONG, Sell for SHORT)
+                    const side = bot.type === 'FEATURES'
+                        ? (trend === 'LONG' ? 'buy' : 'sell')
+                        : 'buy';
+
+                    // Setup Bybit SL/TP params
+                    const params: any = {};
+                    if (bot.type === 'FEATURES' && (bot.stopLossPercentage || bot.takeProfitPercentage)) {
+                        // Calculate absolute prices for SL/TP
+                        if (bot.stopLossPercentage) {
+                            params.stopLoss = trend === 'LONG'
+                                ? (price * (1 - bot.stopLossPercentage / 100)).toFixed(2)
+                                : (price * (1 + bot.stopLossPercentage / 100)).toFixed(2);
+                        }
+                        if (bot.takeProfitPercentage) {
+                            params.takeProfit = trend === 'LONG'
+                                ? (price * (1 + bot.takeProfitPercentage / 100)).toFixed(2)
+                                : (price * (1 - bot.takeProfitPercentage / 100)).toFixed(2);
+                        }
+                    }
+
+                    if (bot.mode === 'REAL') {
+                        await this.logInfo(bot.id, `Executing ${bot.mode} ${side.toUpperCase()} order: ${precisionAmount} ${bot.symbol} (Value: $${(precisionAmount * price).toFixed(2)})`);
+                        const order = await this.exchange.createOrder(bot.symbol, 'market', side, precisionAmount, undefined, params);
+                        orderId = order.id;
+                        await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
+                    } else {
+                        finalAmount = precisionAmount;
+                    }
+                } catch (error: any) {
+                    const errorMsg = error.message || 'Unknown exchange error';
+                    console.error(`[BotEngine] Trade failed: ${errorMsg}`);
+                    await this.logError(bot.id, `Trade failed: ${errorMsg}`);
+                    await this.createAlert(bot.id, 'ERROR', `Failed to execute buy order: ${errorMsg}`);
+                    return;
+                }
+            }
+
+            // Record in DB
+            try {
+                const finalTradeValue = finalAmount * price;
+                await prisma.$transaction([
+                    prisma.position.create({
+                        data: {
+                            botId: bot.id,
+                            symbol: bot.symbol,
+                            amount: finalAmount,
+                            entryPrice: price,
+                            side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'LONG' : 'SHORT') : 'LONG',
+                            status: 'OPEN'
+                        } as any
+                    }),
+                    prisma.trade.create({
+                        data: {
+                            botId: bot.id,
+                            symbol: bot.symbol,
+                            side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'BUY' : 'SELL') : 'BUY',
+                            amount: finalAmount,
+                            price: price,
+                            total: finalTradeValue,
+                            orderId: orderId
+                        }
+                    }),
+                    prisma.bot.update({
+                        where: { id: bot.id },
+                        data: {
+                            totalBuys: { increment: 1 }
+                        } as any
+                    })
+                ]);
+
+                this.riskManager.recordTrade(); // Record trade in risk manager
+                await this.logInfo(bot.id, `[${bot.mode}] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)}`);
+
+            } catch (error: any) {
+                await this.logError(bot.id, `Failed to record trade in database: ${error.message}`);
+            }
+        } finally {
+            this.isBuying = false; // Release lock
         }
     }
 

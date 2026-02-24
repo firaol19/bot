@@ -62,11 +62,11 @@ export class MultiTimeframeStrategy {
         const ema20 = this.calculateEMA(prices, 20);
         const ema50 = this.calculateEMA(prices, 50);
 
-        // Distance check: price must be near EMAs (relaxed to 0.5% threshold)
+        // Distance check: price must be near EMAs (tightened to 0.5% threshold)
         const dist20 = Math.abs(currentPrice - ema20) / ema20;
         const dist50 = Math.abs(currentPrice - ema50) / ema50;
 
-        if (dist20 > 0.02 && dist50 > 0.02) return false; // Too far (2% threshold - realistic for crypto futures)
+        if (dist20 > 0.005 && dist50 > 0.005) return false; // Too far (0.5% threshold)
 
         // Volume check: volume should be decreasing or lower than average during pullback
         const avgVolume = volumes.slice(-10, -1).reduce((a, b) => a + b, 0) / 9;
@@ -105,15 +105,15 @@ export class MultiTimeframeStrategy {
         if (trend === 'LONG') {
             // Bullish Engulfing
             const isEngulfing = currClose > prevOpen && currOpen < prevClose && currClose > currOpen;
-            // Strong bullish close
-            const isStrongClose = currClose > currOpen && (currClose - currOpen) > (current[2] - current[3]) * 0.6;
+            // Strong bullish close (requiring 80% of candle range to be body)
+            const isStrongClose = currClose > currOpen && (currClose - currOpen) > (current[2] - current[3]) * 0.8;
 
             return isEngulfing || isStrongClose;
         } else if (trend === 'SHORT') {
             // Bearish Engulfing
             const isEngulfing = currClose < prevOpen && currOpen > prevClose && currClose < currOpen;
-            // Strong bearish close
-            const isStrongClose = currClose < currOpen && (currOpen - currClose) > (current[2] - current[3]) * 0.6;
+            // Strong bearish close (requiring 80% of candle range to be body)
+            const isStrongClose = currClose < currOpen && (currOpen - currClose) > (current[2] - current[3]) * 0.8;
 
             return isEngulfing || isStrongClose;
         }

@@ -19,6 +19,13 @@ export class FundingRateStrategy {
 
             report.indicators = { fundingRate, openInterest, priceChange };
 
+            // UI Compatibility: Add dummy timeframes so MarketDataPanel doesn't show "Initializing"
+            report.timeframes = {
+                '15m': { status: 'READY', indicators: { price: lastPrice } },
+                '5m': { status: 'READY', indicators: { price: lastPrice } },
+                '1m': { status: 'READY', indicators: { price: lastPrice } }
+            };
+
             // Bias logic:
             // Extremely negative funding + price start to pump = Short Squeeze potential (BUY)
             if (fundingRate < -0.01 && priceChange > 0.1) {
