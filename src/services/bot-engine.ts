@@ -262,8 +262,8 @@ export class BotEngine {
         if (!this.exchange || bot.type !== 'FEATURES') return;
 
         try {
-            const mfStrategy = this.strategy as MultiTimeframeStrategy;
-            const report = await mfStrategy.getAnalysisReport(bot.symbol, this.exchange);
+            // Call strategy analysis report
+            const report = await this.strategy.getAnalysisReport(bot.symbol, this.exchange);
 
             // Store analysis in database (gracefully handle if table doesn't exist)
             try {
@@ -285,6 +285,16 @@ export class BotEngine {
             }
 
             await this.logInfo(bot.id, `📊 Periodic Analysis Complete: ${report.decision}`);
+
+            // 🚀 Re-entry Cooldown Fix for Periodic Analysis
+            const now = Date.now();
+            const lastClosedTrade = await prisma.trade.findFirst({
+                where: { botId: bot.id },
+                orderBy: { timestamp: 'desc' }
+            });
+            if (lastClosedTrade && now - lastClosedTrade.timestamp.getTime() < 5 * 60 * 1000) {
+                return;
+            }
 
             // ✅ FIX: If signal is ready, extract trend and execute a trade
             if (report.decision === 'SIGNAL_READY') {
@@ -445,56 +455,16 @@ export class BotEngine {
         let detectedTrend: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
 
         if (bot.type === 'FEATURES') {
-            const mfStrategy = this.strategy as MultiTimeframeStrategy;
-
-            // 🚀 Analysis Suppression: If there is an open position, skip scanning for new entries
-            if (!isFirstTrade) {
-                // Update price but return early
-                await prisma.bot.update({
-                    where: { id: bot.id },
-                    data: { lastPrice: currentPrice } as any
-                });
-                return;
-            }
-
-            // 🚀 Stability Fix: Throttle strategy execution to every 15 seconds
-            const now = Date.now();
-            const lastCheckTime = (this as any).lastStrategyCheckTime || 0;
-            if (now - lastCheckTime < 15000) return;
-            (this as any).lastStrategyCheckTime = now;
-
-            // 🚀 Re-entry Cooldown Fix: Don't enter a new trade too quickly after closing one
-            const lastClosedTrade = await prisma.trade.findFirst({
-                where: { botId: bot.id },
-                orderBy: { timestamp: 'desc' }
+            // 🚀 STRATEGY FIX: Features bots ONLY enter trades via the performPeriodicAnalysis loop.
+            // This ensures they always use a fresh getAnalysisReport() and prevents duplicate/race entries.
+            // We update the ticker price here but skip the signal detection.
+            await prisma.bot.update({
+                where: { id: bot.id },
+                data: { lastPrice: currentPrice } as any
             });
-            if (lastClosedTrade && now - lastClosedTrade.timestamp.getTime() < 5 * 60 * 1000) {
-                // Wait at least 5 minutes between trades
-                return;
-            }
-
-            // ✅ FIX: Use getAnalysisReport as the single source of truth for signal detection
-            // This ensures the price-tick path and periodic-analysis path share the same logic.
-            try {
-                const report = await mfStrategy.getAnalysisReport(bot.symbol, this.exchange);
-
-                // Log every analysis to DB
-                await this.logAnalysis(bot.id, `MTF Analysis: ${report.decision}`, report);
-
-                if (report.decision === 'SIGNAL_READY') {
-                    // Read trend directly from report
-                    detectedTrend = report.trend === 'SHORT' ? 'SHORT' : 'LONG';
-                    shouldBuy = true;
-                } else {
-                    // Not ready yet — log why and skip
-                    return;
-                }
-            } catch (analysisError: any) {
-                await this.logError(bot.id, `MTF analysis failed: ${analysisError.message}`);
-                return;
-            }
+            return;
         } else {
-            // Original Grid Strategy Buy logic
+            // Original Grid Strategy Buy logic for Spot bots
             const lastPosition = bot.positions[bot.positions.length - 1];
             const lastEntry = lastPosition ? lastPosition.entryPrice : 0;
             shouldBuy = isFirstTrade || (this.strategy as GridStrategy).shouldBuy(currentPrice, lastEntry, bot.buyDrop);
@@ -576,7 +546,7 @@ export class BotEngine {
     private async buy(bot: any, price: number, totalCapital: number, trend: 'LONG' | 'SHORT' = 'LONG') {
         // Calculate amount, passing leverage for FEATURES bots
         const amount = bot.type === 'FEATURES'
-            ? (this.strategy as MultiTimeframeStrategy).calculatePositionSize(totalCapital, bot.buyPercentage, price, bot.leverage)
+            ? this.strategy.calculatePositionSize(totalCapital, bot.buyPercentage, price, bot.leverage)
             : this.strategy.calculatePositionSize(totalCapital, bot.buyPercentage, price);
 
         const tradeValue = amount * price;
@@ -635,6 +605,11 @@ export class BotEngine {
                     // Apply exchange precision
                     const precisionAmount = parseFloat(this.exchange.amountToPrecision(bot.symbol, finalAmount));
 
+                    if (precisionAmount <= 0) {
+                        await this.logError(bot.id, `Trade quantity ${precisionAmount} is invalid after precision adjustment.`);
+                        return;
+                    }
+
                     // Determine order side for Features (Buy for LONG, Sell for SHORT)
                     const side = bot.type === 'FEATURES'
                         ? (trend === 'LONG' ? 'buy' : 'sell')
@@ -659,6 +634,11 @@ export class BotEngine {
                     if (bot.mode === 'REAL') {
                         await this.logInfo(bot.id, `Executing ${bot.mode} ${side.toUpperCase()} order: ${precisionAmount} ${bot.symbol} (Value: $${(precisionAmount * price).toFixed(2)})`);
                         const order = await this.exchange.createOrder(bot.symbol, 'market', side, precisionAmount, undefined, params);
+
+                        if (!order || !order.id) {
+                            throw new Error('Exchange returned successfully but order ID is missing.');
+                        }
+
                         orderId = order.id;
                         await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
                     } else {
@@ -718,6 +698,14 @@ export class BotEngine {
     }
 
     private async sell(bot: any, position: any, price: number, reason: string = 'GRID_SELL', localOnly: boolean = false) {
+        // 🚀 HARDENING: For FEATURES bots, always force local-only exit.
+        // The bot should ONLY open positions. Closures are handled by Bybit (SL/TP) or Manual UI action.
+        // Sync heartbeat will detect the Bybit closure and call this with localOnly=true anyway.
+        let finalLocalOnly = localOnly;
+        if (bot.type === 'FEATURES') {
+            finalLocalOnly = true;
+        }
+
         const isLong = position.side !== 'SHORT';
         const profit = isLong
             ? (price - position.entryPrice) * position.amount
@@ -725,7 +713,7 @@ export class BotEngine {
 
         // Execute Real Trade
         let orderId: string | undefined;
-        if (!localOnly && bot.mode === 'REAL' && this.exchange) {
+        if (!finalLocalOnly && bot.mode === 'REAL' && this.exchange) {
             try {
                 // To close a LONG, we SELL. To close a SHORT, we BUY.
                 const side = isLong ? 'sell' : 'buy';

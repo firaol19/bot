@@ -54,7 +54,7 @@ export class BybitClient {
     /**
      * Normalize symbol for Linear contracts (adds :USDT suffix if missing)
      */
-    private normalizeSymbol(symbol: string): string {
+    public normalizeSymbol(symbol: string): string {
         const isLinear = this.client.options['defaultType'] === 'linear';
         if (isLinear && symbol.includes('/') && !symbol.includes(':')) {
             return `${symbol}:USDT`;
