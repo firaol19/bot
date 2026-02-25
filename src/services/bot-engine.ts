@@ -162,11 +162,68 @@ export class BotEngine {
                 where: { id: this.botId },
                 data: { lastActivityAt: new Date() } as any
             });
+
+            // Synchronize positions with exchange
+            await this.syncPositionsWithExchange();
         } catch (error: any) {
             console.error('[BotEngine] Heartbeat error:', error.message);
         }
 
         this.checkInterval = setTimeout(() => this.heartbeat(), 30000); // 30 second heartbeat
+    }
+
+    /**
+     * Synchronize bot's open positions with Bybit
+     * This handles cases where TP/SL was hit on exchange but bot didn't process it yet.
+     */
+    private async syncPositionsWithExchange() {
+        if (!this.exchange) return;
+
+        try {
+            const bot = await prisma.bot.findUnique({
+                where: { id: this.botId },
+                include: { positions: { where: { status: 'OPEN' } } }
+            }) as any;
+
+            if (!bot || bot.positions.length === 0) return;
+
+            // Fetch positions from exchange for this SYMBOL
+            const exchangePositions = await this.exchange.getPositions(bot.symbol);
+
+            for (const position of bot.positions) {
+                // Find matching position on exchange (same symbol and side)
+                const exPos = exchangePositions.find((p: any) =>
+                    p.symbol === this.exchange!.normalizeSymbol(bot.symbol) &&
+                    p.side?.toUpperCase() === position.side?.toUpperCase()
+                );
+
+                const currentPrice = exPos?.markPrice || exPos?.lastPrice || bot.lastPrice || 0;
+
+                // If position is missing on exchange or size is 0, it means it was CLOSED (TP/SL/Manual)
+                const isStillOpen = exPos && parseFloat(exPos.contracts || exPos.size || 0) > 0;
+
+                if (!isStillOpen) {
+                    await this.logInfo(bot.id, `Sync: Position ${position.id} (${position.side}) found closed on exchange. Syncing DB state...`);
+                    // Locally close the position without sending another close order to Bybit
+                    await this.sell(bot, position, currentPrice, 'EXCHANGE_SYNC_CLOSED', true);
+                } else {
+                    // Update current price and PnL in DB for UI
+                    const profit = position.side === 'SHORT'
+                        ? (position.entryPrice - currentPrice) * position.amount
+                        : (currentPrice - position.entryPrice) * position.amount;
+
+                    await prisma.position.update({
+                        where: { id: position.id },
+                        data: {
+                            currentPrice: currentPrice,
+                            pnl: profit
+                        }
+                    });
+                }
+            }
+        } catch (error: any) {
+            console.error(`[BotEngine] Sync positions failed: ${error.message}`);
+        }
     }
 
     private async startPeriodicAnalysis() {
@@ -343,36 +400,42 @@ export class BotEngine {
                 currentPrice
             );
 
-            // Check Stop Loss
-            if (riskSummary.shouldStopLoss) {
-                await this.logWarning(bot.id, `Stop loss triggered for position ${position.id} at ${currentPrice}`);
-                await this.createAlert(bot.id, 'STOP_LOSS', `Stop loss triggered at $${currentPrice.toFixed(2)}. Loss: $${riskSummary.pnl.toFixed(2)}`);
-                await this.sell(bot, position, currentPrice, 'STOP_LOSS');
-                continue;
-            }
+            // 🚀 FEATURES FIX: If this is a FEATURES bot, we usually let Bybit handle SL/TP.
+            // We only trigger local sell if it's NOT a features bot or if there's no TP/SL set on Bybit (Safety).
+            const isFeatures = bot.type === 'FEATURES';
 
-            // Check Take Profit
-            if (riskSummary.shouldTakeProfit) {
-                await this.logInfo(bot.id, `Take profit triggered for position ${position.id} at ${currentPrice}`);
-                await this.createAlert(bot.id, 'TAKE_PROFIT', `Take profit triggered at $${currentPrice.toFixed(2)}. Profit: $${riskSummary.pnl.toFixed(2)}`);
-                await this.sell(bot, position, currentPrice, 'TAKE_PROFIT');
-                continue;
-            }
-
-            // Check Trailing Stop
-            if (bot.trailingStopPercent && bot.highestPrice) {
-                if (this.riskManager.shouldTriggerTrailingStop(currentPrice, bot.highestPrice)) {
-                    await this.logInfo(bot.id, `Trailing stop triggered for position ${position.id}`);
-                    await this.createAlert(bot.id, 'TRAILING_STOP', `Trailing stop triggered at $${currentPrice.toFixed(2)}`);
-                    await this.sell(bot, position, currentPrice, 'TRAILING_STOP');
+            if (!isFeatures) {
+                // Check Stop Loss
+                if (riskSummary.shouldStopLoss) {
+                    await this.logWarning(bot.id, `Stop loss triggered for position ${position.id} at ${currentPrice}`);
+                    await this.createAlert(bot.id, 'STOP_LOSS', `Stop loss triggered at $${currentPrice.toFixed(2)}. Loss: $${riskSummary.pnl.toFixed(2)}`);
+                    await this.sell(bot, position, currentPrice, 'STOP_LOSS');
                     continue;
                 }
-            }
 
-            // Check regular sell conditions (grid strategy)
-            if (bot.type !== 'FEATURES' && (this.strategy as GridStrategy).shouldSell(currentPrice, position.entryPrice, bot.sellPercentage)) {
-                await this.logInfo(bot.id, `Grid sell triggered for position ${position.id} at ${currentPrice} (Profit target reached)`);
-                await this.sell(bot, position, currentPrice, 'GRID_SELL');
+                // Check Take Profit
+                if (riskSummary.shouldTakeProfit) {
+                    await this.logInfo(bot.id, `Take profit triggered for position ${position.id} at ${currentPrice}`);
+                    await this.createAlert(bot.id, 'TAKE_PROFIT', `Take profit triggered at $${currentPrice.toFixed(2)}. Profit: $${riskSummary.pnl.toFixed(2)}`);
+                    await this.sell(bot, position, currentPrice, 'TAKE_PROFIT');
+                    continue;
+                }
+
+                // Check Trailing Stop
+                if (bot.trailingStopPercent && bot.highestPrice) {
+                    if (this.riskManager.shouldTriggerTrailingStop(currentPrice, bot.highestPrice)) {
+                        await this.logInfo(bot.id, `Trailing stop triggered for position ${position.id}`);
+                        await this.createAlert(bot.id, 'TRAILING_STOP', `Trailing stop triggered at $${currentPrice.toFixed(2)}`);
+                        await this.sell(bot, position, currentPrice, 'TRAILING_STOP');
+                        continue;
+                    }
+                }
+
+                // Check regular sell conditions (grid strategy)
+                if (bot.type !== 'FEATURES' && (this.strategy as GridStrategy).shouldSell(currentPrice, position.entryPrice, bot.sellPercentage)) {
+                    await this.logInfo(bot.id, `Grid sell triggered for position ${position.id} at ${currentPrice} (Profit target reached)`);
+                    await this.sell(bot, position, currentPrice, 'GRID_SELL');
+                }
             }
         }
 
@@ -399,6 +462,16 @@ export class BotEngine {
             const lastCheckTime = (this as any).lastStrategyCheckTime || 0;
             if (now - lastCheckTime < 15000) return;
             (this as any).lastStrategyCheckTime = now;
+
+            // 🚀 Re-entry Cooldown Fix: Don't enter a new trade too quickly after closing one
+            const lastClosedTrade = await prisma.trade.findFirst({
+                where: { botId: bot.id },
+                orderBy: { timestamp: 'desc' }
+            });
+            if (lastClosedTrade && now - lastClosedTrade.timestamp.getTime() < 5 * 60 * 1000) {
+                // Wait at least 5 minutes between trades
+                return;
+            }
 
             // ✅ FIX: Use getAnalysisReport as the single source of truth for signal detection
             // This ensures the price-tick path and periodic-analysis path share the same logic.
@@ -644,7 +717,7 @@ export class BotEngine {
         }
     }
 
-    private async sell(bot: any, position: any, price: number, reason: string = 'GRID_SELL') {
+    private async sell(bot: any, position: any, price: number, reason: string = 'GRID_SELL', localOnly: boolean = false) {
         const isLong = position.side !== 'SHORT';
         const profit = isLong
             ? (price - position.entryPrice) * position.amount
@@ -652,7 +725,7 @@ export class BotEngine {
 
         // Execute Real Trade
         let orderId: string | undefined;
-        if (bot.mode === 'REAL' && this.exchange) {
+        if (!localOnly && bot.mode === 'REAL' && this.exchange) {
             try {
                 // To close a LONG, we SELL. To close a SHORT, we BUY.
                 const side = isLong ? 'sell' : 'buy';

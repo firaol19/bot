@@ -39,12 +39,15 @@ export async function POST(
             testnet: isTestnet
         });
 
-        // 2. Execute Market Sell
+        // 2. Execute Market Sell/Buy
         let order;
         let executionPrice = 0;
         try {
-            console.log(`[API] Manually closing position ${id}: Selling ${position.amount} ${position.symbol}`);
-            order = await exchange.createOrder(position.symbol, 'market', 'sell', position.amount);
+            const isLong = position.side !== 'SHORT';
+            const closeSide = isLong ? 'sell' : 'buy';
+
+            console.log(`[API] Manually closing position ${id}: ${closeSide.toUpperCase()}ING ${position.amount} ${position.symbol} to close ${position.side}`);
+            order = await exchange.createOrder(position.symbol, 'market', closeSide, position.amount);
 
             // Try to get filled price
             if (order.average) {
@@ -58,10 +61,12 @@ export async function POST(
             }
         } catch (error: any) {
             console.error('Exchange Order Failed:', error);
-            return NextResponse.json({ error: `Exchange sell failed: ${error.message}` }, { status: 400 });
+            return NextResponse.json({ error: `Exchange close failed: ${error.message}` }, { status: 400 });
         }
 
-        const profit = (executionPrice - position.entryPrice) * position.amount;
+        const profit = position.side === 'SHORT'
+            ? (position.entryPrice - executionPrice) * position.amount
+            : (executionPrice - position.entryPrice) * position.amount;
 
         // 3. Close the position in DB
         await prisma.$transaction([

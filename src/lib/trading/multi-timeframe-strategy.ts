@@ -91,31 +91,58 @@ export class MultiTimeframeStrategy {
      *   - Bearish engulfing or strong bearish close for SHORT
      */
     checkEntry(candles: any[], trend: 'LONG' | 'SHORT'): boolean {
-        if (candles.length < 2) return false;
+        if (candles.length < 5) return false;
 
         const current = candles[candles.length - 1];
         const previous = candles[candles.length - 2];
+        const recentCandles = candles.slice(-6, -1);
+
+        // Calculate average body size of recent candles for volatility filter
+        const avgBodySize = recentCandles.reduce((sum, c) => sum + Math.abs(c[1] - c[4]), 0) / 5;
 
         // Format: [timestamp, open, high, low, close, volume]
         const currOpen = current[1];
         const currClose = current[4];
+        const currHigh = current[2];
+        const currLow = current[3];
         const prevOpen = previous[1];
         const prevClose = previous[4];
 
+        const currBodySize = Math.abs(currClose - currOpen);
+        const isBullish = currClose > currOpen;
+        const isBearish = currClose < currOpen;
+
+        // Volatility filter: Body must be at least 50% of the average body size
+        // (Prevents entering on tiny dojis)
+        if (currBodySize < avgBodySize * 0.5) return false;
+
         if (trend === 'LONG') {
-            // Bullish Engulfing
-            const isEngulfing = currClose > prevOpen && currOpen < prevClose && currClose > currOpen;
-            // Strong bullish close (requiring 80% of candle range to be body)
-            const isStrongClose = currClose > currOpen && (currClose - currOpen) > (current[2] - current[3]) * 0.8;
+            if (!isBullish) return false;
 
-            return isEngulfing || isStrongClose;
+            // Bullish Engulfing: Current close must be above previous open AND current open below previous close
+            // Plus current candle must be larger than previous
+            const isEngulfing = currClose > prevOpen && currOpen < prevClose && currBodySize > Math.abs(prevOpen - prevClose);
+
+            // Strong bullish close: Body is at least 80% of candle range
+            const isStrongClose = (currClose - currOpen) > (currHigh - currLow) * 0.8;
+
+            // Extra filter: Current close must be above the previous candle's high for extra confirmation
+            const breaksHigh = currClose > previous[2];
+
+            return (isEngulfing || isStrongClose) && breaksHigh;
         } else if (trend === 'SHORT') {
-            // Bearish Engulfing
-            const isEngulfing = currClose < prevOpen && currOpen > prevClose && currClose < currOpen;
-            // Strong bearish close (requiring 80% of candle range to be body)
-            const isStrongClose = currClose < currOpen && (currOpen - currClose) > (current[2] - current[3]) * 0.8;
+            if (!isBearish) return false;
 
-            return isEngulfing || isStrongClose;
+            // Bearish Engulfing
+            const isEngulfing = currClose < prevOpen && currOpen > prevClose && currBodySize > Math.abs(prevOpen - prevClose);
+
+            // Strong bearish close: Body is at least 80% of candle range
+            const isStrongClose = (currOpen - currClose) > (currHigh - currLow) * 0.8;
+
+            // Extra filter: Current close must be below the previous candle's low
+            const breaksLow = currClose < previous[3];
+
+            return (isEngulfing || isStrongClose) && breaksLow;
         }
 
         return false;

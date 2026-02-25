@@ -14,6 +14,7 @@ export interface Position {
     amount: number;
     currentPrice?: number;
     pnl?: number;
+    side?: string; // LONG or SHORT
 }
 
 export class RiskManager {
@@ -40,16 +41,22 @@ export class RiskManager {
     /**
      * Calculate stop loss price for a position
      */
-    calculateStopLoss(entryPrice: number): number | null {
+    calculateStopLoss(entryPrice: number, side: string = 'LONG'): number | null {
         if (!this.config.stopLossPercentage) return null;
+        if (side === 'SHORT') {
+            return entryPrice * (1 + this.config.stopLossPercentage / 100);
+        }
         return entryPrice * (1 - this.config.stopLossPercentage / 100);
     }
 
     /**
      * Calculate take profit price for a position
      */
-    calculateTakeProfit(entryPrice: number): number | null {
+    calculateTakeProfit(entryPrice: number, side: string = 'LONG'): number | null {
         if (!this.config.takeProfitPercentage) return null;
+        if (side === 'SHORT') {
+            return entryPrice * (1 - this.config.takeProfitPercentage / 100);
+        }
         return entryPrice * (1 + this.config.takeProfitPercentage / 100);
     }
 
@@ -64,19 +71,19 @@ export class RiskManager {
     /**
      * Check if stop loss should trigger
      */
-    shouldTriggerStopLoss(currentPrice: number, entryPrice: number): boolean {
-        const stopLoss = this.calculateStopLoss(entryPrice);
+    shouldTriggerStopLoss(currentPrice: number, entryPrice: number, side: string = 'LONG'): boolean {
+        const stopLoss = this.calculateStopLoss(entryPrice, side);
         if (!stopLoss) return false;
-        return currentPrice <= stopLoss;
+        return side === 'SHORT' ? currentPrice >= stopLoss : currentPrice <= stopLoss;
     }
 
     /**
      * Check if take profit should trigger
      */
-    shouldTriggerTakeProfit(currentPrice: number, entryPrice: number): boolean {
-        const takeProfit = this.calculateTakeProfit(entryPrice);
+    shouldTriggerTakeProfit(currentPrice: number, entryPrice: number, side: string = 'LONG'): boolean {
+        const takeProfit = this.calculateTakeProfit(entryPrice, side);
         if (!takeProfit) return false;
-        return currentPrice >= takeProfit;
+        return side === 'SHORT' ? currentPrice <= takeProfit : currentPrice >= takeProfit;
     }
 
     /**
@@ -178,6 +185,9 @@ export class RiskManager {
      * Calculate position P&L
      */
     calculatePnL(position: Position, currentPrice: number): number {
+        if (position.side === 'SHORT') {
+            return (position.entryPrice - currentPrice) * position.amount;
+        }
         return (currentPrice - position.entryPrice) * position.amount;
     }
 
@@ -185,6 +195,9 @@ export class RiskManager {
      * Calculate position P&L percentage
      */
     calculatePnLPercentage(position: Position, currentPrice: number): number {
+        if (position.side === 'SHORT') {
+            return ((position.entryPrice - currentPrice) / position.entryPrice) * 100;
+        }
         return ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
     }
 
@@ -192,18 +205,19 @@ export class RiskManager {
      * Get risk summary for a position
      */
     getPositionRiskSummary(position: Position, currentPrice: number) {
+        const side = position.side || 'LONG';
         const pnl = this.calculatePnL(position, currentPrice);
         const pnlPercent = this.calculatePnLPercentage(position, currentPrice);
-        const stopLoss = this.calculateStopLoss(position.entryPrice);
-        const takeProfit = this.calculateTakeProfit(position.entryPrice);
+        const stopLoss = this.calculateStopLoss(position.entryPrice, side);
+        const takeProfit = this.calculateTakeProfit(position.entryPrice, side);
 
         return {
             pnl,
             pnlPercent,
             stopLoss,
             takeProfit,
-            shouldStopLoss: this.shouldTriggerStopLoss(currentPrice, position.entryPrice),
-            shouldTakeProfit: this.shouldTriggerTakeProfit(currentPrice, position.entryPrice),
+            shouldStopLoss: this.shouldTriggerStopLoss(currentPrice, position.entryPrice, side),
+            shouldTakeProfit: this.shouldTriggerTakeProfit(currentPrice, position.entryPrice, side),
         };
     }
 
