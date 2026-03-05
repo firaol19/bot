@@ -298,10 +298,19 @@ export class BotEngine {
 
             // ✅ FIX: If signal is ready, extract trend and execute a trade
             if (report.decision === 'SIGNAL_READY') {
-                await this.createAlert(bot.id, 'INFO', 'Trading signal detected! All timeframes aligned. Executing trade...');
-
                 // Read trend directly from report (set in getAnalysisReport when SIGNAL_READY)
                 const trend: 'LONG' | 'SHORT' = report.trend === 'SHORT' ? 'SHORT' : 'LONG';
+
+                // Prevent immediate re-entry in the Exact Same Direction if we just closed one in the same trend recently
+                if (lastClosedTrade && now - lastClosedTrade.timestamp.getTime() < 15 * 60 * 1000) {
+                    // Wait at least 15 min before blindly jumping back into the exact same trend signal
+                    if (lastClosedTrade.side === (trend === 'LONG' ? 'SELL' : 'BUY')) { // Opposite trade side closes the position
+                        await this.logInfo(bot.id, `Skipping duplicate SIGNAL_READY for ${trend}. Cooldown active after recent close.`);
+                        return;
+                    }
+                }
+
+                await this.createAlert(bot.id, 'INFO', 'Trading signal detected! All timeframes aligned. Executing trade...');
 
                 // Get current price from exchange
                 const ticker = await this.exchange!.getKlines(bot.symbol, '1m', 2);
@@ -620,14 +629,18 @@ export class BotEngine {
                     if (bot.type === 'FEATURES' && (bot.stopLossPercentage || bot.takeProfitPercentage)) {
                         // Calculate absolute prices for SL/TP
                         if (bot.stopLossPercentage) {
-                            params.stopLoss = trend === 'LONG'
-                                ? (price * (1 - bot.stopLossPercentage / 100)).toFixed(2)
-                                : (price * (1 + bot.stopLossPercentage / 100)).toFixed(2);
+                            const rawSl = trend === 'LONG'
+                                ? (price * (1 - bot.stopLossPercentage / 100))
+                                : (price * (1 + bot.stopLossPercentage / 100));
+                            params.stopLoss = this.exchange.priceToPrecision(bot.symbol, rawSl);
+                            params.slTriggerBy = 'MarkPrice';
                         }
                         if (bot.takeProfitPercentage) {
-                            params.takeProfit = trend === 'LONG'
-                                ? (price * (1 + bot.takeProfitPercentage / 100)).toFixed(2)
-                                : (price * (1 - bot.takeProfitPercentage / 100)).toFixed(2);
+                            const rawTp = trend === 'LONG'
+                                ? (price * (1 + bot.takeProfitPercentage / 100))
+                                : (price * (1 - bot.takeProfitPercentage / 100));
+                            params.takeProfit = this.exchange.priceToPrecision(bot.symbol, rawTp);
+                            params.tpTriggerBy = 'MarkPrice';
                         }
                     }
 
@@ -719,7 +732,12 @@ export class BotEngine {
                 const side = isLong ? 'sell' : 'buy';
                 await this.logInfo(bot.id, `Executing REAL ${side.toUpperCase()} order to close ${position.side} position (${reason})`);
 
-                const order = await this.exchange.createOrder(bot.symbol, 'market', side, position.amount);
+                const params: any = {};
+                if (bot.type === 'FEATURES') {
+                    params.reduceOnly = true;
+                }
+
+                const order = await this.exchange.createOrder(bot.symbol, 'market', side, position.amount, undefined, params);
                 orderId = order.id;
 
                 await this.logInfo(bot.id, `Real close order executed successfully. Order ID: ${orderId}`);

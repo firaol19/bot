@@ -117,17 +117,26 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // 4. EXECUTE INITIAL MARKET BUY (MANDATORY TO PROCEED)
-        console.log(`[API] Executing Mandatory Initial Buy: ${precisionAmount} ${body.symbol} at ~${currentPrice}`);
-        let order;
-        try {
-            order = await exchange.createOrder(body.symbol, 'market', 'buy', precisionAmount);
-            console.log(`[API] Initial Buy Success! Order ID: ${order.id}`);
-        } catch (error: any) {
-            console.error(`[API] Initial Buy Failed. Bot will NOT be created.`, error.message);
-            return NextResponse.json({
-                error: `Initial trade failed: ${error.message}. The bot was not created.`
-            }, { status: 400 });
+        // 4. EXECUTE INITIAL MARKET BUY (MANDATORY TO PROCEED FOR SPOT BOTS)
+        let order: any;
+        let finalPrecisionAmount = precisionAmount;
+        let finalTradeValue = tradeValue;
+
+        if (body.type !== 'FEATURES') {
+            console.log(`[API] Executing Mandatory Initial Buy: ${precisionAmount} ${body.symbol} at ~${currentPrice}`);
+            try {
+                order = await exchange.createOrder(body.symbol, 'market', 'buy', precisionAmount);
+                console.log(`[API] Initial Buy Success! Order ID: ${order.id}`);
+            } catch (error: any) {
+                console.error(`[API] Initial Buy Failed. Bot will NOT be created.`, error.message);
+                return NextResponse.json({
+                    error: `Initial trade failed: ${error.message}. The bot was not created.`
+                }, { status: 400 });
+            }
+        } else {
+            console.log(`[API] Features Bot configured: Skipping initial market buy. Analysis will handle first entry.`);
+            finalPrecisionAmount = 0; // Don't hold phantom positions yet
+            finalTradeValue = 0;
         }
 
         // 5. ATOMIC DATABASE PERSISTENCE (Bot + Position + Trade)
@@ -155,33 +164,35 @@ export async function POST(request: Request) {
                     maxDailyTrades: body.maxDailyTrades,
                     apiKey: encrypt(apiKey),
                     apiSecret: encrypt(apiSecret),
-                    totalBuys: 1,
+                    totalBuys: body.type !== 'FEATURES' ? 1 : 0,
                     startedAt: new Date()
                 }
 
             });
 
-            await tx.position.create({
-                data: {
-                    botId: newBot.id,
-                    symbol: body.symbol,
-                    amount: precisionAmount,
-                    entryPrice: currentPrice,
-                    status: 'OPEN'
-                }
-            });
+            if (body.type !== 'FEATURES') {
+                await tx.position.create({
+                    data: {
+                        botId: newBot.id,
+                        symbol: body.symbol,
+                        amount: finalPrecisionAmount,
+                        entryPrice: currentPrice,
+                        status: 'OPEN'
+                    }
+                });
 
-            await tx.trade.create({
-                data: {
-                    botId: newBot.id,
-                    symbol: body.symbol,
-                    side: 'BUY',
-                    amount: precisionAmount,
-                    price: currentPrice,
-                    total: tradeValue,
-                    orderId: order.id
-                }
-            });
+                await tx.trade.create({
+                    data: {
+                        botId: newBot.id,
+                        symbol: body.symbol,
+                        side: 'BUY',
+                        amount: finalPrecisionAmount,
+                        price: currentPrice,
+                        total: finalTradeValue,
+                        orderId: order?.id
+                    }
+                });
+            }
 
             return newBot;
         });

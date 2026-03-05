@@ -47,7 +47,13 @@ export async function POST(
             const closeSide = isLong ? 'sell' : 'buy';
 
             console.log(`[API] Manually closing position ${id}: ${closeSide.toUpperCase()}ING ${position.amount} ${position.symbol} to close ${position.side}`);
-            order = await exchange.createOrder(position.symbol, 'market', closeSide, position.amount);
+
+            const params: any = {};
+            if (position.bot.type === 'FEATURES') {
+                params.reduceOnly = true;
+            }
+
+            order = await exchange.createOrder(position.symbol, 'market', closeSide, position.amount, undefined, params);
 
             // Try to get filled price
             if (order.average) {
