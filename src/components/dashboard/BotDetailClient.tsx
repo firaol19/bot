@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -49,7 +49,7 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
     if (loading || !botData || !stats) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-gray-400">Loading bot data...</div>
+                <div className="text-gray-600 dark:text-gray-400">Loading bot data...</div>
             </div>
         );
     }
@@ -86,13 +86,13 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4">
-                    <Link href="/dashboard" className="p-2 hover:bg-gray-800 rounded-lg transition">
+                    <Link href="/dashboard" className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition">
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
                         <h1 className="text-xl md:text-2xl font-bold flex flex-wrap items-center gap-3">
                             {botData.name}
-                            <span className="text-sm px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-normal">
+                            <span className="text-sm px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-normal">
                                 {botData.symbol}
                             </span>
                             {isRunning && (
@@ -102,8 +102,8 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                                 </span>
                             )}
                         </h1>
-                        <p className="text-gray-400 text-sm">
-                            {botData.exchange.toUpperCase()} • {botData.mode} Mode
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">
+                            {botData.exchange.toUpperCase()} â€¢ {botData.mode} Mode
                         </p>
                     </div>
                 </div>
@@ -121,7 +121,7 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                     </button>
                     <Link
                         href={`/dashboard/spot/bot/${botId}/settings`}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-white font-medium"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-gray-900 dark:text-white font-medium"
                     >
                         <Settings size={18} />
                         Edit Bot
@@ -134,10 +134,10 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                 <div className="lg:col-span-1">
                     <LivePriceCard symbol={botData.symbol} initialPrice={stats.currentPrice} />
                 </div>
-                <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-6">
+                <div className="lg:col-span-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="font-semibold text-gray-300">Market Price Chart</h3>
-                        <span className="text-xs text-gray-500">Live Updates</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-500">Live Updates</span>
                     </div>
                     <PriceChart symbol={botData.symbol} />
                 </div>
@@ -153,7 +153,7 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Positions */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                         <h3 className="font-semibold mb-4 text-gray-300">
                             Active Positions ({botData.positions.length})
                         </h3>
@@ -169,34 +169,34 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                 {/* Right Column: Info */}
                 <div className="space-y-6">
                     {/* Bot Configuration */}
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                         <h3 className="font-semibold mb-4 text-gray-300">Configuration</h3>
                         <div className="space-y-3">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Capital</span>
+                                <span className="text-gray-600 dark:text-gray-400">Capital</span>
                                 <span className="font-medium">${botData.capital}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Position Size</span>
+                                <span className="text-gray-600 dark:text-gray-400">Position Size</span>
                                 <span className="font-medium">{botData.buyPercentage}%</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Buy Drop</span>
+                                <span className="text-gray-600 dark:text-gray-400">Buy Drop</span>
                                 <span className="font-medium">{botData.buyDrop}%</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Sell Profit</span>
+                                <span className="text-gray-600 dark:text-gray-400">Sell Profit</span>
                                 <span className="font-medium">{botData.sellPercentage}%</span>
                             </div>
                             {botData.stopLossPercentage && (
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-400">Stop Loss</span>
+                                    <span className="text-gray-600 dark:text-gray-400">Stop Loss</span>
                                     <span className="font-medium text-red-400">{botData.stopLossPercentage}%</span>
                                 </div>
                             )}
                             {botData.takeProfitPercentage && (
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-400">Take Profit</span>
+                                    <span className="text-gray-600 dark:text-gray-400">Take Profit</span>
                                     <span className="font-medium text-green-400">{botData.takeProfitPercentage}%</span>
                                 </div>
                             )}
@@ -204,39 +204,39 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                     </div>
 
                     {/* Total Profit */}
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                         <h3 className="font-semibold mb-4 text-gray-300">Total Profit</h3>
                         <p className={`text-3xl font-bold ${botData.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             ${botData.totalProfit.toFixed(2)}
                         </p>
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                             Since {new Date(botData.createdAt).toLocaleDateString()}
                         </p>
                     </div>
 
                     {/* Recent Trades */}
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                         <h3 className="font-semibold mb-4 text-gray-300">Recent Trades</h3>
                         <div className="space-y-3 max-h-96 overflow-y-auto">
                             {botData.trades.length === 0 ? (
-                                <p className="text-gray-500 text-sm">No trades yet</p>
+                                <p className="text-gray-500 dark:text-gray-500 text-sm">No trades yet</p>
                             ) : (
                                 botData.trades.map((trade: any) => (
                                     <div
                                         key={trade.id}
-                                        className="flex justify-between items-center text-sm p-2 hover:bg-gray-800/50 rounded"
+                                        className="flex justify-between items-center text-sm p-2 hover:bg-gray-100 dark:bg-gray-800/50 rounded"
                                     >
                                         <div className="flex flex-col">
                                             <span className={`font-bold ${trade.side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
                                                 {trade.side}
                                             </span>
-                                            <span className="text-gray-500 text-xs">
+                                            <span className="text-gray-500 dark:text-gray-500 text-xs">
                                                 {new Date(trade.timestamp).toLocaleTimeString()}
                                             </span>
                                         </div>
                                         <div className="text-right">
                                             <div className="font-medium">${trade.price.toFixed(2)}</div>
-                                            <div className="text-xs text-gray-500">
+                                            <div className="text-xs text-gray-500 dark:text-gray-500">
                                                 {trade.amount.toFixed(6)} {botData.symbol.split('/')[0]}
                                             </div>
                                             {trade.profit !== null && trade.profit !== undefined && (

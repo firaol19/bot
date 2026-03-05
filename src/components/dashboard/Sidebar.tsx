@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -50,7 +50,7 @@ export function Sidebar() {
                 onClick={() => setIsMobileMenuOpen(false)}
             />
 
-            <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
+            <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-[0.2em]">
                 Strategies
             </div>
 
@@ -70,7 +70,7 @@ export function Sidebar() {
                 onClick={() => setIsMobileMenuOpen(false)}
             />
 
-            <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">
+            <div className="pt-6 pb-2 px-4 text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-[0.2em]">
                 System
             </div>
 
@@ -87,18 +87,18 @@ export function Sidebar() {
     return (
         <>
             {/* Desktop Sidebar */}
-            <div className="hidden md:flex h-screen w-72 glass-effect text-white p-6 flex-col overflow-y-auto z-50">
+            <div className="hidden md:flex h-screen w-72 glass-effect text-gray-900 dark:text-white p-6 flex-col overflow-y-auto z-50">
                 <div className="mb-10 flex items-center gap-3 px-2">
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                        <Zap size={24} className="text-white fill-current" />
+                        <Zap size={24} className="text-gray-900 dark:text-white fill-current" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-black tracking-tighter text-white">FIRA BOT</h1>
+                        <h1 className="text-lg font-black tracking-tighter text-gray-900 dark:text-white">FIRA BOT</h1>
                         <p className="text-[10px] text-blue-400 font-bold tracking-widest uppercase">Trading Pro</p>
                     </div>
                 </div>
 
-                <div className="mb-8 p-1 bg-gray-950/50 rounded-2xl border border-white/5">
+                <div className="mb-8 p-1 bg-white dark:bg-gray-950/50 rounded-2xl border border-gray-200 dark:border-white/5">
                     <ViewModeToggle />
                 </div>
 
@@ -106,7 +106,7 @@ export function Sidebar() {
 
                 <button
                     onClick={handleLogout}
-                    className="flex items-center space-x-3 p-4 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition-all text-gray-400 mt-auto border-t border-white/5 pt-6 group"
+                    className="flex items-center space-x-3 p-4 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition-all text-gray-600 dark:text-gray-400 mt-auto border-t border-gray-200 dark:border-white/5 pt-6 group"
                 >
                     <div className="p-2 rounded-xl group-hover:bg-red-500/20 transition-colors">
                         <LogOut size={20} />
@@ -128,7 +128,7 @@ export function Sidebar() {
                             <Zap size={24} className="text-blue-500" />
                             <span className="font-black tracking-tighter text-xl">FIRA BOT</span>
                         </div>
-                        <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 glass-card rounded-xl text-gray-400 hover:text-white">
+                        <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 glass-card rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white">
                             <X size={20} />
                         </button>
                     </div>
@@ -141,7 +141,7 @@ export function Sidebar() {
 
                     <button
                         onClick={handleLogout}
-                        className="flex items-center space-x-3 p-4 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition text-gray-400 mt-auto border-t border-white/5 pt-6"
+                        className="flex items-center space-x-3 p-4 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition text-gray-600 dark:text-gray-400 mt-auto border-t border-gray-200 dark:border-white/5 pt-6"
                     >
                         <LogOut size={20} />
                         <span className="font-semibold">Sign Out</span>
@@ -150,13 +150,13 @@ export function Sidebar() {
             </div>
 
             {/* Mobile Bottom Nav */}
-            <div className="md:hidden fixed bottom-6 left-6 right-6 h-20 glass-effect rounded-[2.5rem] flex justify-around items-center px-4 z-[90] shadow-2xl border-white/10">
+            <div className="md:hidden fixed bottom-6 left-6 right-6 h-20 glass-effect rounded-[2.5rem] flex justify-around items-center px-4 z-[90] shadow-2xl border-gray-200 dark:border-white/10">
                 <MobileTabIcon href={`/dashboard${query}`} icon={<Home size={22} />} isActive={pathname === '/dashboard'} />
                 <MobileTabIcon href={`/dashboard/spot${query}`} icon={<Activity size={22} />} isActive={pathname === '/dashboard/spot'} />
 
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="flex flex-col items-center justify-center w-14 h-14 bg-blue-600 rounded-full text-white shadow-xl shadow-blue-500/40 relative -top-8 border-4 border-[#05070a] transition-transform active:scale-90"
+                    className="flex flex-col items-center justify-center w-14 h-14 bg-blue-600 rounded-full text-white shadow-xl shadow-blue-500/40 relative -top-8 border-4 border-white dark:border-[#05070a] transition-transform active:scale-90"
                 >
                     <Menu size={24} />
                 </button>
@@ -169,12 +169,12 @@ export function Sidebar() {
             <div className="md:hidden fixed top-0 left-0 right-0 h-20 glass-effect z-[80] flex items-center justify-between px-6 border-b-0 shadow-none">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <Zap size={18} className="text-white fill-current" />
+                        <Zap size={18} className="text-gray-900 dark:text-white fill-current" />
                     </div>
                     <span className="font-black tracking-tighter text-lg uppercase underline decoration-blue-500 underline-offset-4">Fira Bot</span>
                 </div>
                 <div className="scale-90 origin-right">
-                    <div className="bg-gray-950/40 p-1 rounded-xl border border-white/5">
+                    <div className="bg-white dark:bg-gray-950/40 p-1 rounded-xl border border-gray-200 dark:border-white/5">
                         <ViewModeToggle />
                     </div>
                 </div>
@@ -185,10 +185,10 @@ export function Sidebar() {
 
 function NavLink({ href, icon, label, isActive, onClick, variant = 'default' }: any) {
     const activeClasses = variant === 'accent'
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+        ? 'bg-blue-600 text-gray-900 dark:text-white shadow-lg shadow-blue-600/20'
         : 'bg-white/5 text-blue-400 border-r-4 border-blue-500';
 
-    const inactiveClasses = 'text-gray-400 hover:bg-white/5 hover:text-white';
+    const inactiveClasses = 'text-gray-600 dark:text-gray-400 hover:bg-white/5 hover:text-gray-900 dark:text-white';
 
     return (
         <Link
@@ -206,7 +206,7 @@ function NavLink({ href, icon, label, isActive, onClick, variant = 'default' }: 
 
 function MobileTabIcon({ href, icon, isActive }: any) {
     return (
-        <Link href={href} className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? 'text-blue-500 scale-110' : 'text-gray-500'}`}>
+        <Link href={href} className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? 'text-blue-500 scale-110' : 'text-gray-500 dark:text-gray-500'}`}>
             <div className={`p-2 rounded-xl ${isActive ? 'bg-blue-500/10' : ''}`}>
                 {icon}
             </div>

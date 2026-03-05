@@ -1,6 +1,21 @@
 @import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 :root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #3b82f6;
+  --secondary: #6366f1;
+  --accent: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-highlight: rgba(0, 0, 0, 0.03);
+}
+
+.dark {
   --background: #05070a;
   --foreground: #f8fafc;
   --primary: #3b82f6;
@@ -8,7 +23,7 @@
   --accent: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  
+
   --glass-bg: rgba(15, 23, 42, 0.65);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.03);
@@ -19,7 +34,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
+
   --color-glass: var(--glass-bg);
   --color-glass-border: var(--glass-border);
 }
@@ -38,6 +53,10 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass-effect {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
@@ -56,8 +75,17 @@ body {
 
 /* Premium Animations */
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 .animate-glow {
@@ -81,11 +109,18 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

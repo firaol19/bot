@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Shield, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
@@ -59,7 +59,7 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
     };
 
     return (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
             <div className="flex items-center gap-2 mb-6">
                 <Shield className="w-5 h-5 text-blue-400" />
                 <h3 className="text-xl font-bold">Risk Management Settings</h3>
@@ -80,11 +80,11 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
                             step="0.1"
                             min="0"
                             max="100"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                            className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                         />
-                        <span className="text-gray-400 w-12">%</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-12">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Automatically sell if loss reaches this percentage (0 to disable)
                     </p>
                 </div>
@@ -103,11 +103,11 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
                             step="0.1"
                             min="0"
                             max="1000"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                            className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                         />
-                        <span className="text-gray-400 w-12">%</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-12">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Automatically sell if profit reaches this percentage (0 to disable)
                     </p>
                 </div>
@@ -126,11 +126,11 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
                             step="0.1"
                             min="0"
                             max="100"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                            className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                         />
-                        <span className="text-gray-400 w-12">%</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-12">%</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Sell if price drops this % from highest point (0 to disable)
                     </p>
                 </div>
@@ -148,11 +148,11 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
                             onChange={(e) => setMaxPositions(parseInt(e.target.value) || 1)}
                             min="1"
                             max="100"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                            className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                         />
-                        <span className="text-gray-400 w-12">pos</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-12">pos</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Maximum number of positions the bot can open simultaneously
                     </p>
                 </div>
@@ -170,11 +170,11 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
                             onChange={(e) => setMaxDailyLoss(parseFloat(e.target.value) || 0)}
                             step="1"
                             min="0"
-                            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                            className="flex-1 bg-gray-100 dark:bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
                         />
-                        <span className="text-gray-400 w-12">$</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-12">$</span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Bot will stop if daily loss exceeds this amount (0 to disable)
                     </p>
                 </div>
@@ -183,7 +183,7 @@ export function RiskSettings({ botId, initialSettings, onSave }: RiskSettingsPro
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition"
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white font-medium py-3 rounded-lg transition"
                 >
                     {saving ? 'Saving...' : 'Save Risk Settings'}
                 </button>

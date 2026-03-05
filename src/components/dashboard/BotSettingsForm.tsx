@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -86,22 +86,22 @@ export function BotSettingsForm({ bot }: { bot: any }) {
 
     return (
         <div className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6 bg-gray-900 p-4 md:p-8 rounded-xl border border-gray-800">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-gray-50 dark:bg-gray-900 p-4 md:p-8 rounded-xl border border-gray-200 dark:border-gray-800">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Bot Name</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Bot Name</label>
                         <input
                             type="text"
                             required
-                            className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                            className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Mode</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Mode</label>
                         <select
-                            className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                            className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                             value={formData.mode}
                             onChange={e => setFormData({ ...formData, mode: e.target.value })}
                         >
@@ -113,25 +113,25 @@ export function BotSettingsForm({ bot }: { bot: any }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Current Balance (USDT)</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Current Balance (USDT)</label>
                         <input
                             type="number"
                             disabled
-                            className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-gray-500 cursor-not-allowed"
+                            className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-500 dark:text-gray-500 cursor-not-allowed"
                             value={formData.capital}
                         // Capital is now managed by Bot Engine fetching from Exchange
                         />
                         <p className="text-xs text-gray-600 mt-1">Automatically updated from exchange balance</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Position Size (% of Capital)</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Position Size (% of Capital)</label>
                         <input
                             type="number"
                             required
                             min="1"
                             max="100"
                             step="0.1"
-                            className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                            className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                             value={formData.buyPercentage}
                             onChange={e => setFormData({ ...formData, buyPercentage: Number(e.target.value) })}
                         />
@@ -140,63 +140,63 @@ export function BotSettingsForm({ bot }: { bot: any }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Buy Trigger (Drop %)</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Buy Trigger (Drop %)</label>
                         <input
                             type="number"
                             required
                             step="0.1"
-                            className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                            className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                             value={formData.buyDrop}
                             onChange={e => setFormData({ ...formData, buyDrop: Number(e.target.value) })}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Sell Profit (Target %)</label>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Sell Profit (Target %)</label>
                         <input
                             type="number"
                             required
                             step="0.1"
-                            className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                            className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                             value={formData.sellPercentage}
                             onChange={e => setFormData({ ...formData, sellPercentage: Number(e.target.value) })}
                         />
                     </div>
                 </div>
 
-                <div className="border-t border-gray-800 pt-6 mt-6">
-                    <h3 className="text-lg font-semibold mb-4 text-white">Risk Management</h3>
+                <div className="border-t border-gray-200 dark:border-gray-800 pt-6 mt-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Risk Management</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Stop Loss (%)</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Stop Loss (%)</label>
                             <input
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-red-500 outline-none transition"
                                 value={formData.stopLossPercentage}
                                 onChange={e => setFormData({ ...formData, stopLossPercentage: Number(e.target.value) })}
                             />
                             <p className="text-xs text-gray-600 mt-1">0 to disable</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Take Profit (%)</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Take Profit (%)</label>
                             <input
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-green-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-green-500 outline-none transition"
                                 value={formData.takeProfitPercentage}
                                 onChange={e => setFormData({ ...formData, takeProfitPercentage: Number(e.target.value) })}
                             />
                             <p className="text-xs text-gray-600 mt-1">0 to disable</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Trailing Stop (%)</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Trailing Stop (%)</label>
                             <input
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                                 value={formData.trailingStopPercent}
                                 onChange={e => setFormData({ ...formData, trailingStopPercent: Number(e.target.value) })}
                             />
@@ -206,23 +206,23 @@ export function BotSettingsForm({ bot }: { bot: any }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Max Positions</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Max Positions</label>
                             <input
                                 type="number"
                                 min="1"
                                 step="1"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                                 value={formData.maxPositions}
                                 onChange={e => setFormData({ ...formData, maxPositions: Number(e.target.value) })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Max Daily Loss (USDT)</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Max Daily Loss (USDT)</label>
                             <input
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-red-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-red-500 outline-none transition"
                                 value={formData.maxDailyLoss}
                                 onChange={e => setFormData({ ...formData, maxDailyLoss: Number(e.target.value) })}
                             />
@@ -231,26 +231,26 @@ export function BotSettingsForm({ bot }: { bot: any }) {
                     </div>
                 </div>
 
-                <div className="border-t border-gray-800 pt-6 mt-6">
-                    <h3 className="text-lg font-semibold mb-4 text-white">API Configuration (Optional)</h3>
-                    <p className="text-sm text-gray-500 mb-4">Leave empty to keep existing keys. Required for Real Trading mode.</p>
+                <div className="border-t border-gray-200 dark:border-gray-800 pt-6 mt-6">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">API Configuration (Optional)</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">Leave empty to keep existing keys. Required for Real Trading mode.</p>
 
                     <div className="grid grid-cols-1 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Bybit API Key</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Bybit API Key</label>
                             <input
                                 type="text"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                                 value={formData.apiKey}
                                 onChange={e => setFormData({ ...formData, apiKey: e.target.value })}
                                 placeholder="Enter new API Key to update"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Bybit API Secret</label>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Bybit API Secret</label>
                             <input
                                 type="password"
-                                className="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition"
+                                className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg p-3 text-gray-900 dark:text-white focus:border-blue-500 outline-none transition"
                                 value={formData.apiSecret}
                                 onChange={e => setFormData({ ...formData, apiSecret: e.target.value })}
                                 placeholder="Enter new API Secret to update"
@@ -270,7 +270,7 @@ export function BotSettingsForm({ bot }: { bot: any }) {
 
             <div className="bg-red-900/10 border border-red-900/50 p-8 rounded-xl">
                 <h3 className="text-lg font-bold text-red-400 mb-2">Danger Zone</h3>
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
                     Once you delete a bot, there is no going back. Please be certain.
                 </p>
                 <button

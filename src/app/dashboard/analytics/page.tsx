@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db';
+﻿import { prisma } from '@/lib/db';
 import { AnalyticsCard } from '@/components/dashboard/AnalyticsCard';
 
 export const dynamic = 'force-dynamic';
@@ -38,11 +38,11 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                 <div className="lg:col-span-2 space-y-6">
                     <AnalyticsCard trades={allTrades} />
 
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                         <h3 className="font-semibold mb-4 text-gray-300">Recent Trade History</h3>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="text-xs text-gray-500 border-b border-gray-800">
+                                <thead className="text-xs text-gray-500 dark:text-gray-500 border-b border-gray-200 dark:border-gray-800">
                                     <tr>
                                         <th className="pb-2">Date</th>
                                         <th className="pb-2">Symbol</th>
@@ -55,7 +55,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                                 </thead>
                                 <tbody className="text-sm divide-y divide-gray-800">
                                     {allTrades.slice(0, 20).map((t) => (
-                                        <tr key={t.id} className="hover:bg-gray-800/50">
+                                        <tr key={t.id} className="hover:bg-gray-100 dark:bg-gray-800/50">
                                             <td className="py-3">{new Date(t.timestamp).toLocaleString()}</td>
                                             <td className="py-3">{t.symbol}</td>
                                             <td className={`py-3 font-bold ${t.side === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
@@ -64,7 +64,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
                                             <td className="py-3 text-right">${t.price.toFixed(2)}</td>
                                             <td className="py-3 text-right">{t.amount}</td>
                                             <td className="py-3 text-right">${t.total.toFixed(2)}</td>
-                                            <td className={`py-3 text-right ${t.profit && t.profit > 0 ? 'text-green-400' : (t.profit && t.profit < 0 ? 'text-red-400' : 'text-gray-500')}`}>
+                                            <td className={`py-3 text-right ${t.profit && t.profit > 0 ? 'text-green-400' : (t.profit && t.profit < 0 ? 'text-red-400' : 'text-gray-500 dark:text-gray-500')}`}>
                                                 {t.profit ? `$${t.profit.toFixed(2)}` : '-'}
                                             </td>
                                         </tr>
@@ -77,22 +77,22 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
                 {/* Side Stats */}
                 <div className="space-y-6">
-                    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                    <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                         <h3 className="font-semibold mb-4 text-gray-300">Global Stats</h3>
                         <div className="space-y-4">
                             <div className="flex justify-between">
-                                <span className="text-gray-500">Total Profit</span>
+                                <span className="text-gray-500 dark:text-gray-500">Total Profit</span>
                                 <span className={`font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                     ${totalProfit.toFixed(2)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500">Total Volume</span>
-                                <span className="text-white">${totalVolume.toLocaleString()}</span>
+                                <span className="text-gray-500 dark:text-gray-500">Total Volume</span>
+                                <span className="text-gray-900 dark:text-white">${totalVolume.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500">Trades Executed</span>
-                                <span className="text-white">{allTrades.length}</span>
+                                <span className="text-gray-500 dark:text-gray-500">Trades Executed</span>
+                                <span className="text-gray-900 dark:text-white">{allTrades.length}</span>
                             </div>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { prisma } from '@/lib/db';
 import { Play, Pause, TrendingUp, AlertCircle, Plus, ChevronRight, Zap, Target, Activity } from 'lucide-react';
 import { BalanceCard } from '@/components/dashboard/BalanceCard';
@@ -99,7 +99,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-black tracking-tighter uppercase underline decoration-blue-500 decoration-4 underline-offset-8">Active Fleet</h2>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{bots.length} Units Ready</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">{bots.length} Units Ready</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -108,13 +108,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                             <div className="p-8">
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner ${bot.status === 'RUNNING' ? 'bg-emerald-500/10 text-emerald-500 animate-pulse' : 'bg-gray-800 text-gray-500'}`}>
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner ${bot.status === 'RUNNING' ? 'bg-emerald-500/10 text-emerald-500 animate-pulse' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-500'}`}>
                                             {bot.symbol.charAt(0)}
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-black tracking-tight group-hover:text-blue-400 transition-colors uppercase">{bot.name}</h3>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{bot.symbol}</span>
+                                                <span className="text-[10px] font-black text-gray-500 dark:text-gray-500 uppercase tracking-[0.2em]">{bot.symbol}</span>
                                                 <div className="w-1 h-1 rounded-full bg-gray-700" />
                                                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">{bot.type}</span>
                                             </div>
@@ -126,12 +126,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 mb-8">
-                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Capital</p>
-                                        <p className="text-lg font-black text-white">${bot.capital.toLocaleString()}</p>
+                                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/5">
+                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1">Capital</p>
+                                        <p className="text-lg font-black text-gray-900 dark:text-white">${bot.capital.toLocaleString()}</p>
                                     </div>
-                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Net ROI</p>
+                                    <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/5">
+                                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1">Net ROI</p>
                                         <p className={`text-lg font-black ${bot.totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {bot.totalProfit >= 0 ? '+' : ''}${bot.totalProfit.toFixed(2)}
                                         </p>
@@ -148,7 +148,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                                     </Link>
                                     <Link
                                         href={`/dashboard/spot/bot/${bot.id}/settings`}
-                                        className="flex items-center justify-center gap-2 w-full py-4 bg-white/5 hover:bg-white/10 text-white font-black text-sm rounded-2xl border border-white/5 transition-colors"
+                                        className="flex items-center justify-center gap-2 w-full py-4 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white font-black text-sm rounded-2xl border border-gray-200 dark:border-white/5 transition-colors"
                                     >
                                         ADJUST STRATEGY
                                     </Link>
@@ -162,11 +162,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         href={`/dashboard/spot/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
                         className="glass-card border-dashed border-2 border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center p-12 hover:bg-blue-500/5 hover:border-blue-500/30 transition-all cursor-pointer group min-h-[350px]"
                     >
-                        <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 text-gray-400 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500 rotate-0 group-hover:rotate-90">
+                        <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 text-gray-600 dark:text-gray-400 group-hover:bg-blue-500 group-hover:text-gray-900 dark:text-white transition-all duration-500 rotate-0 group-hover:rotate-90">
                             <Plus size={32} strokeWidth={3} />
                         </div>
-                        <span className="text-xl font-black text-white uppercase tracking-tighter">Expand Fleet</span>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2">Deploy New Instance</span>
+                        <span className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Expand Fleet</span>
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest mt-2">Deploy New Instance</span>
                     </Link>
                 </div>
             </div>
@@ -180,9 +180,9 @@ function SimpleStatCard({ label, value, sub, icon }: any) {
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 {icon}
             </div>
-            <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">{label}</h3>
+            <h3 className="text-[10px] font-black text-gray-500 dark:text-gray-500 uppercase tracking-widest mb-1">{label}</h3>
             <div className="flex items-baseline gap-2">
-                <p className="text-4xl font-black text-white tracking-tighter">{value}</p>
+                <p className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter">{value}</p>
                 <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{sub}</p>
             </div>
         </div>

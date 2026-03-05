@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,7 +47,7 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
     if (loading || !botData || !stats) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-gray-400">Loading Features bot data...</div>
+                <div className="text-gray-600 dark:text-gray-400">Loading Features bot data...</div>
             </div>
         );
     }
@@ -82,7 +82,7 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4">
-                    <Link href="/dashboard/features" className="p-2 hover:bg-gray-800 rounded-lg transition text-gray-400 hover:text-white">
+                    <Link href="/dashboard/features" className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white">
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
@@ -102,8 +102,8 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
                                 </span>
                             )}
                         </h1>
-                        <p className="text-gray-400 text-sm mt-1">
-                            {botData.symbol} • Bybit Linear (Futures) • {botData.mode}
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                            {botData.symbol} â€¢ Bybit Linear (Futures) â€¢ {botData.mode}
                         </p>
                     </div>
                 </div>
@@ -121,7 +121,7 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
                     </button>
                     <Link
                         href={`/dashboard/features/bot/${botId}/settings`}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl transition text-gray-300 hover:text-white border border-gray-700"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-700 rounded-xl transition text-gray-300 hover:text-gray-900 dark:text-white border border-gray-700"
                     >
                         <Settings size={18} />
                         Settings
@@ -176,13 +176,13 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
                     <MarketDataPanel botId={botId} symbol={botData.symbol} />
 
                     {/* Strategy Signal Card */}
-                    <div className="bg-[#0c0c0c] border border-gray-800 rounded-2xl p-6 shadow-2xl">
+                    <div className="bg-white dark:bg-[#0c0c0c] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-gray-400 flex items-center gap-2 uppercase tracking-tighter text-xs">
+                            <h3 className="font-bold text-gray-600 dark:text-gray-400 flex items-center gap-2 uppercase tracking-tighter text-xs">
                                 <BarChart2 size={14} className="text-blue-400" />
                                 MTF Strategy Status
                             </h3>
-                            <span className="text-[10px] text-gray-600 bg-gray-800/50 px-2 py-0.5 rounded italic">
+                            <span className="text-[10px] text-gray-600 bg-gray-100 dark:bg-gray-800/50 px-2 py-0.5 rounded italic">
                                 {stats.latestAnalysis ? new Date(stats.latestAnalysis.timestamp).toLocaleTimeString() : 'Scanning...'}
                             </span>
                         </div>
@@ -196,31 +196,31 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
 
                                         return (
                                             <div key={tf} className="space-y-2">
-                                                <div className="flex items-center justify-between p-3 bg-gray-900/30 rounded-xl border border-gray-800/50">
-                                                    <span className="text-sm text-gray-400">{tf} {tf === '15m' ? 'Trend' : tf === '5m' ? 'Setup' : 'Entry'}</span>
+                                                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800/50">
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">{tf} {tf === '15m' ? 'Trend' : tf === '5m' ? 'Setup' : 'Entry'}</span>
                                                     <span className={`text-[10px] font-mono font-bold px-2 py-1 rounded ${isReady ? 'bg-green-900/40 text-green-400' :
                                                         isWaiting ? 'bg-yellow-900/40 text-yellow-400' :
-                                                            'bg-gray-800 text-gray-400'
+                                                            'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                                                         }`}>
                                                         {tfData?.status || 'IDLE'}
                                                     </span>
                                                 </div>
                                                 {tfData?.detail && (
-                                                    <p className="text-[10px] text-gray-500 px-2 italic line-clamp-1">{tfData.detail}</p>
+                                                    <p className="text-[10px] text-gray-500 dark:text-gray-500 px-2 italic line-clamp-1">{tfData.detail}</p>
                                                 )}
                                             </div>
                                         );
                                     })}
                                 </>
                             ) : (
-                                <div className="py-12 flex flex-col items-center justify-center border border-dashed border-gray-800 rounded-xl bg-gray-900/20">
+                                <div className="py-12 flex flex-col items-center justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50 dark:bg-gray-900/20">
                                     <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-                                    <p className="text-xs text-gray-500 animate-pulse">Waiting for first scan...</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 animate-pulse">Waiting for first scan...</p>
                                 </div>
                             )}
                         </div>
-                        <div className="mt-6 p-4 bg-gray-900/50 rounded-xl border border-gray-800/50 text-center">
-                            <p className="text-[10px] text-gray-500 uppercase font-black mb-1">Current Decision</p>
+                        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-800/50 text-center">
+                            <p className="text-[10px] text-gray-500 dark:text-gray-500 uppercase font-black mb-1">Current Decision</p>
                             <p className={`text-sm font-bold ${stats.latestAnalysis?.data?.decision === 'SIGNAL_READY' ? 'text-green-400' : 'text-blue-400'}`}>
                                 {stats.latestAnalysis?.data?.decision?.replace(/_/g, ' ') || 'INITIALIZING'}
                             </p>
@@ -231,18 +231,18 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
                     </div>
                 </div>
 
-                <div className="lg:col-span-2 bg-[#0c0c0c] border border-gray-800 rounded-2xl p-6 relative overflow-hidden">
+                <div className="lg:col-span-2 bg-white dark:bg-[#0c0c0c] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                         <BarChart2 size={120} />
                     </div>
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                            <h3 className="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
                                 Market Analysis
                             </h3>
-                            <p className="text-xs text-gray-500 mt-1">Interactive TradingView Chart</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Interactive TradingView Chart</p>
                         </div>
-                        <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">1m Timeframe</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">1m Timeframe</span>
                     </div>
                     <div className="h-[400px]">
                         <PriceChart symbol={botData.symbol} />
@@ -252,27 +252,27 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
 
             {/* Performance Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-[#0c0c0c] p-6 rounded-2xl border border-gray-800">
-                    <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Total Profit</h3>
+                <div className="bg-white dark:bg-[#0c0c0c] p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-gray-500 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Total Profit</h3>
                     <p className={`text-3xl font-bold ${botData.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         ${botData.totalProfit.toFixed(2)}
                     </p>
                     <p className="text-[10px] text-gray-600 mt-2">Aggregated realized PnL</p>
                 </div>
-                <div className="bg-[#0c0c0c] p-6 rounded-2xl border border-gray-800">
-                    <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Win Rate</h3>
-                    <p className="text-3xl font-bold text-white">{stats.winRate || 0}%</p>
+                <div className="bg-white dark:bg-[#0c0c0c] p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-gray-500 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Win Rate</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.winRate || 0}%</p>
                     <p className="text-[10px] text-gray-600 mt-2">Based on {botData.totalSells} trades</p>
                 </div>
-                <div className="bg-[#0c0c0c] p-6 rounded-2xl border border-gray-800">
-                    <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Open Risk</h3>
-                    <p className="text-3xl font-bold text-white">
+                <div className="bg-white dark:bg-[#0c0c0c] p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-gray-500 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Open Risk</h3>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
                         ${(botData.capital * (botData.stopLossPercentage / 100)).toFixed(2)}
                     </p>
                     <p className="text-[10px] text-gray-600 mt-2">Max loss per trade</p>
                 </div>
-                <div className="bg-[#0c0c0c] p-6 rounded-2xl border border-gray-800">
-                    <h3 className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Leverage</h3>
+                <div className="bg-white dark:bg-[#0c0c0c] p-6 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <h3 className="text-gray-500 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Leverage</h3>
                     <p className="text-3xl font-bold text-yellow-500">{botData.leverage}x</p>
                     <p className="text-[10px] text-gray-600 mt-2">Isolated Margin Applied</p>
                 </div>
@@ -281,10 +281,10 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
             {/* Positions Table */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
-                    <div className="bg-[#0c0c0c] border border-gray-800 rounded-2xl p-6 overflow-hidden">
-                        <h3 className="font-bold mb-6 text-white flex items-center justify-between">
+                    <div className="bg-white dark:bg-[#0c0c0c] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 overflow-hidden">
+                        <h3 className="font-bold mb-6 text-gray-900 dark:text-white flex items-center justify-between">
                             Active Trades
-                            <span className="text-xs bg-gray-800 px-2 py-0.5 rounded font-normal text-gray-400">
+                            <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded font-normal text-gray-600 dark:text-gray-400">
                                 {botData.positions.length} Open
                             </span>
                         </h3>
@@ -299,30 +299,30 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
 
                 <div className="space-y-6">
                     {/* Bot Configuration Card */}
-                    <div className="bg-[#0c0c0c] border border-gray-800 rounded-2xl p-6">
-                        <h3 className="font-bold mb-6 text-white flex items-center gap-2">
+                    <div className="bg-white dark:bg-[#0c0c0c] border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+                        <h3 className="font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
                             <Shield size={16} className="text-yellow-500" />
                             Configuration
                         </h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500">Capital Allocated</span>
-                                <span className="text-white font-mono font-bold">${botData.capital.toFixed(2)}</span>
+                                <span className="text-gray-500 dark:text-gray-500">Capital Allocated</span>
+                                <span className="text-gray-900 dark:text-white font-mono font-bold">${botData.capital.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500">Isolated Leverage</span>
+                                <span className="text-gray-500 dark:text-gray-500">Isolated Leverage</span>
                                 <span className="text-yellow-500 font-mono font-bold">{botData.leverage}x</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500">Stop Loss (Risk)</span>
+                                <span className="text-gray-500 dark:text-gray-500">Stop Loss (Risk)</span>
                                 <span className="text-red-400 font-mono font-bold">-{botData.stopLossPercentage}%</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-500">Take Profit (Target)</span>
+                                <span className="text-gray-500 dark:text-gray-500">Take Profit (Target)</span>
                                 <span className="text-green-400 font-mono font-bold">+{botData.takeProfitPercentage}%</span>
                             </div>
                         </div>
-                        <div className="mt-8 pt-6 border-t border-gray-800">
+                        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
                             <div className="flex items-center gap-3 text-xs text-gray-600 leading-relaxed">
                                 <Shield size={14} className="flex-shrink-0" />
                                 <span>Risk management rules are enforced by the background engine 24/7.</span>
@@ -331,14 +331,14 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
                     </div>
 
                     {/* Trade History Preview */}
-                    <div className="bg-[#0c0c0c] border border-gray-800 rounded-2xl p-6">
-                        <h3 className="font-bold mb-6 text-white">Realized Statistics</h3>
+                    <div className="bg-white dark:bg-[#0c0c0c] border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+                        <h3 className="font-bold mb-6 text-gray-900 dark:text-white">Realized Statistics</h3>
                         <div className="grid grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800/50">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800/50">
                                 <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Total Buys</p>
                                 <p className="text-xl font-bold text-blue-400">{botData.totalBuys}</p>
                             </div>
-                            <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800/50">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-900/30 rounded-xl border border-gray-200 dark:border-gray-800/50">
                                 <p className="text-[10px] font-bold text-gray-600 uppercase mb-1">Total Sells</p>
                                 <p className="text-xl font-bold text-green-400">{botData.totalSells}</p>
                             </div>

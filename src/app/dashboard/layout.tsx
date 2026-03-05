@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+﻿import { Suspense } from 'react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { NotificationCenter } from '@/components/dashboard/NotificationCenter';
 
@@ -15,7 +15,7 @@ export default function DashboardLayout({
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full" />
             </div>
 
-            <Suspense fallback={<div className="hidden md:flex h-screen w-72 bg-gray-900 border-r border-gray-800" />}>
+            <Suspense fallback={<div className="hidden md:flex h-screen w-72 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800" />}>
                 <Sidebar />
             </Suspense>
 

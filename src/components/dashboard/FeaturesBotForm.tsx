@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -15,8 +15,8 @@ export default function FeaturesBotForm() {
         symbol: 'BTC/USDT',
         capitalAllocation: 10,
         leverage: 1,
-        stopLossPercentage: 0.3, // 0.2%–0.3% as per requirements
-        takeProfitPercentage: 0.6, // 0.4%–0.6% as per requirements
+        stopLossPercentage: 0.3, // 0.2%â€“0.3% as per requirements
+        takeProfitPercentage: 0.6, // 0.4%â€“0.6% as per requirements
         sellPercentage: 0.6, // Mapped to TP for schema requirements
         buyDrop: 0, // Not used by FEATURES but required by schema
         exchange: 'bybit',
@@ -76,11 +76,11 @@ export default function FeaturesBotForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Strict Risk Validation: Max risk per trade ≤ 1 USDT
+        // Strict Risk Validation: Max risk per trade â‰¤ 1 USDT
         // Risk = Capital * (SL / 100)
         const riskAmount = formData.capitalAllocation * (formData.stopLossPercentage / 100);
         if (riskAmount > 1.0) {
-            alert(`MANDATORY RULE VIOLATION: Max risk per trade ($${riskAmount.toFixed(2)}) must be ≤ 1 USDT. Please reduce capital or SL percentage.`);
+            alert(`MANDATORY RULE VIOLATION: Max risk per trade ($${riskAmount.toFixed(2)}) must be â‰¤ 1 USDT. Please reduce capital or SL percentage.`);
             return;
         }
 
@@ -128,12 +128,12 @@ export default function FeaturesBotForm() {
         <div className="max-w-4xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-4">
-                    <Link href={`/dashboard?view=${initialMode === 'REAL' ? 'real' : 'demo'}`} className="p-2 bg-gray-900 border border-gray-800 hover:bg-gray-800 rounded-xl transition shadow-lg">
-                        <ArrowLeft size={20} className="text-gray-400" />
+                    <Link href={`/dashboard?view=${initialMode === 'REAL' ? 'real' : 'demo'}`} className="p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:bg-gray-800 rounded-xl transition shadow-lg">
+                        <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
                     </Link>
                     <div>
                         <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent"> Features Trading Bot</h1>
-                        <p className="text-gray-400 text-sm flex items-center gap-2 mt-1">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm flex items-center gap-2 mt-1">
                             <TrendingUp size={14} className="text-blue-500" /> Multi-Timeframe Strategy (15m, 5m, 1m)
                         </p>
                     </div>
@@ -145,7 +145,7 @@ export default function FeaturesBotForm() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-gray-900/50 backdrop-blur-xl border border-gray-800/50 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+                    <div className="bg-gray-50 dark:bg-gray-900/50 backdrop-blur-xl border border-gray-200 dark:border-gray-800/50 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
                             <TrendingUp size={120} />
                         </div>
@@ -153,12 +153,12 @@ export default function FeaturesBotForm() {
                         <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Bot Identity</label>
-                                    <input type="text" required className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-700" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Master MTF Bot" />
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Bot Identity</label>
+                                    <input type="text" required className="w-full bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-700" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Master MTF Bot" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Strategy Architecture</label>
-                                    <select className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer" value={formData.strategyName} onChange={e => setFormData({ ...formData, strategyName: e.target.value })}>
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Strategy Architecture</label>
+                                    <select className="w-full bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer" value={formData.strategyName} onChange={e => setFormData({ ...formData, strategyName: e.target.value })}>
                                         <option value="MultiTimeframe">MTF (Triple Window Confirmation)</option>
                                         <option value="TrendFollowing">Trend-following (EMA + Market Structure)</option>
                                         <option value="Breakout">Breakout (Bollinger Bands + Volume)</option>
@@ -168,8 +168,8 @@ export default function FeaturesBotForm() {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Trading Asset</label>
-                                    <select className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer" value={formData.symbol} onChange={e => setFormData({ ...formData, symbol: e.target.value })}>
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Trading Asset</label>
+                                    <select className="w-full bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer" value={formData.symbol} onChange={e => setFormData({ ...formData, symbol: e.target.value })}>
 
                                         <option value="BTC/USDT">BTC/USDT (Bitcoin)</option>
                                         <option value="ETH/USDT">ETH/USDT (Ethereum)</option>
@@ -190,12 +190,12 @@ export default function FeaturesBotForm() {
 
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center mb-1">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Trade Capital (USDT)</label>
-                                    <span className="text-xs font-medium text-gray-500">Max Available: ${availableBalance.toFixed(2)}</span>
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Trade Capital (USDT)</label>
+                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-500">Max Available: ${availableBalance.toFixed(2)}</span>
                                 </div>
                                 <div className="relative">
-                                    <input type="number" required min="1" max={availableBalance} step="0.01" className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 pl-12 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" value={formData.capitalAllocation} onChange={e => setFormData({ ...formData, capitalAllocation: parseFloat(e.target.value) || 0 })} />
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                                    <input type="number" required min="1" max={availableBalance} step="0.01" className="w-full bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 pl-12 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" value={formData.capitalAllocation} onChange={e => setFormData({ ...formData, capitalAllocation: parseFloat(e.target.value) || 0 })} />
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-500">
                                         <Wallet size={18} />
                                     </div>
                                 </div>
@@ -205,7 +205,7 @@ export default function FeaturesBotForm() {
                                             key={pct}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, capitalAllocation: parseFloat((availableBalance * pct / 100).toFixed(2)) })}
-                                            className="px-4 py-2 bg-gray-950 border border-gray-800 hover:bg-gray-800 rounded-xl text-xs font-semibold text-gray-400 transition shadow-sm"
+                                            className="px-4 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:bg-gray-800 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 transition shadow-sm"
                                         >
                                             {pct}%
                                         </button>
@@ -215,32 +215,32 @@ export default function FeaturesBotForm() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Leverage (x)</label>
-                                    <input type="number" required min="1" max="50" step="1" className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all" value={formData.leverage} onChange={e => setFormData({ ...formData, leverage: parseInt(e.target.value) || 1 })} />
-                                    <p className="text-[10px] text-gray-500 ml-1 italic">* Recommended: 10x - 20x for MTF Strategy</p>
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Leverage (x)</label>
+                                    <input type="number" required min="1" max="50" step="1" className="w-full bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all" value={formData.leverage} onChange={e => setFormData({ ...formData, leverage: parseInt(e.target.value) || 1 })} />
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-500 ml-1 italic">* Recommended: 10x - 20x for MTF Strategy</p>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Strategy Risk Limit</label>
-                                    <div className={`w-full bg-gray-950/50 border rounded-2xl p-4 flex items-center justify-between transition-colors ${riskAmount > 1 ? 'border-red-500/50' : 'border-green-500/50'}`}>
-                                        <span className="text-sm text-gray-400 font-medium">Potential Risk</span>
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Strategy Risk Limit</label>
+                                    <div className={`w-full bg-white dark:bg-gray-950/50 border rounded-2xl p-4 flex items-center justify-between transition-colors ${riskAmount > 1 ? 'border-red-500/50' : 'border-green-500/50'}`}>
+                                        <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Potential Risk</span>
                                         <span className={`font-bold ${riskAmount > 1 ? 'text-red-400' : 'text-green-400'}`}>$ {riskAmount.toFixed(2)} USDT</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-500 ml-1 flex items-center gap-1">
-                                        <ShieldCheck size={10} className="text-green-500" /> Requirement: ≤ $1.00 USDT risk
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-500 ml-1 flex items-center gap-1">
+                                        <ShieldCheck size={10} className="text-green-500" /> Requirement: â‰¤ $1.00 USDT risk
                                     </p>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1">Daily Trade Limit</label>
-                                    <input type="number" min="0" step="1" className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl p-4 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" value={formData.maxDailyTrades} onChange={e => setFormData({ ...formData, maxDailyTrades: parseInt(e.target.value) || 0 })} />
-                                    <p className="text-[10px] text-gray-500 ml-1 italic">* 0 = Unlimited trades per day</p>
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1">Daily Trade Limit</label>
+                                    <input type="number" min="0" step="1" className="w-full bg-white dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" value={formData.maxDailyTrades} onChange={e => setFormData({ ...formData, maxDailyTrades: parseInt(e.target.value) || 0 })} />
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-500 ml-1 italic">* 0 = Unlimited trades per day</p>
                                 </div>
                             </div>
 
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1 text-red-400">Stop Loss (%)</label>
-                                    <input type="number" required step="0.01" min="0.1" max="1" className="w-full bg-gray-950/50 border border-red-500/20 rounded-2xl p-4 text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" value={formData.stopLossPercentage} onChange={e => setFormData({ ...formData, stopLossPercentage: parseFloat(e.target.value) || 0 })} />
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1 text-red-400">Stop Loss (%)</label>
+                                    <input type="number" required step="0.01" min="0.1" max="1" className="w-full bg-white dark:bg-gray-950/50 border border-red-500/20 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-red-500 focus:ring-4 focus:ring-red-500/10 outline-none transition-all" value={formData.stopLossPercentage} onChange={e => setFormData({ ...formData, stopLossPercentage: parseFloat(e.target.value) || 0 })} />
                                     <div className="text-xs font-bold text-red-400/80 ml-1 bg-red-400/5 p-3 rounded-xl space-y-1">
                                         <div className="flex justify-between items-center">
                                             <span>Price:</span>
@@ -253,8 +253,8 @@ export default function FeaturesBotForm() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-400 ml-1 text-green-400">Take Profit (%)</label>
-                                    <input type="number" required step="0.01" min="0.1" className="w-full bg-gray-950/50 border border-green-500/20 rounded-2xl p-4 text-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all" value={formData.takeProfitPercentage} onChange={e => setFormData({ ...formData, takeProfitPercentage: parseFloat(e.target.value) || 0 })} />
+                                    <label className="text-sm font-semibold text-gray-600 dark:text-gray-400 ml-1 text-green-400">Take Profit (%)</label>
+                                    <input type="number" required step="0.01" min="0.1" className="w-full bg-white dark:bg-gray-950/50 border border-green-500/20 rounded-2xl p-4 text-gray-900 dark:text-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 outline-none transition-all" value={formData.takeProfitPercentage} onChange={e => setFormData({ ...formData, takeProfitPercentage: parseFloat(e.target.value) || 0 })} />
                                     <div className="text-xs font-bold text-green-400/80 ml-1 bg-green-400/5 p-3 rounded-xl space-y-1">
                                         <div className="flex justify-between items-center">
                                             <span>Price:</span>
@@ -281,37 +281,37 @@ export default function FeaturesBotForm() {
                             <div className="p-2 bg-blue-500/20 rounded-xl">
                                 <ShieldCheck className="text-blue-400" size={24} />
                             </div>
-                            <h3 className="font-bold text-white">Strategy Guidelines</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white">Strategy Guidelines</h3>
                         </div>
                         <ul className="space-y-3 text-xs text-blue-200/70 leading-relaxed font-medium">
                             <li className="flex gap-2">
-                                <span className="text-blue-400 font-bold">•</span>
+                                <span className="text-blue-400 font-bold">â€¢</span>
                                 <div><strong className="text-blue-300">Trend Verification:</strong> 15m Timeframe ensures we follow the primary market direction.</div>
                             </li>
                             <li className="flex gap-2">
-                                <span className="text-blue-400 font-bold">•</span>
+                                <span className="text-blue-400 font-bold">â€¢</span>
                                 <div><strong className="text-blue-300">Setup Stability:</strong> 5m Timeframe filters out noise and waits for retracements.</div>
                             </li>
                             <li className="flex gap-2">
-                                <span className="text-blue-400 font-bold">•</span>
+                                <span className="text-blue-400 font-bold">â€¢</span>
                                 <div><strong className="text-blue-300">Precision Entry:</strong> 1m Timeframe entry based on candle confirmation only.</div>
                             </li>
                         </ul>
                     </div>
 
-                    <div className="bg-gray-900/50 border border-gray-800/50 rounded-3xl p-6 shadow-xl space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800/50 rounded-3xl p-6 shadow-xl space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-gray-400">Market Price</span>
-                            <span className="text-xs bg-gray-800 text-gray-400 px-2 py-1 rounded-lg">Real-time</span>
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Market Price</span>
+                            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-lg">Real-time</span>
                         </div>
-                        <div className="text-3xl font-mono font-bold text-white tracking-tighter">
+                        <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white tracking-tighter">
                             $ {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
-                        <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
-                            <span className="text-sm font-semibold text-gray-400">Available Funds</span>
-                            <span className="text-lg font-bold text-white">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="pt-4 border-t border-gray-200 dark:border-gray-800 flex justify-between items-center">
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Available Funds</span>
+                            <span className="text-lg font-bold text-gray-900 dark:text-white">${availableBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        <button onClick={fetchBalance} disabled={loadingBalance} className="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-300 transition-all flex items-center justify-center gap-2">
+                        <button onClick={fetchBalance} disabled={loadingBalance} className="w-full py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-400 transition-all flex items-center justify-center gap-2">
                             <RefreshCw size={14} className={loadingBalance ? 'animate-spin' : ''} />
                             Refresh Wallet
                         </button>
@@ -324,8 +324,8 @@ export default function FeaturesBotForm() {
                                 <div className="space-y-2">
                                     <h4 className="font-bold text-red-400 text-sm italic underline">STRICT RULES ALERT</h4>
                                     <p className="text-xs text-red-300/80 leading-relaxed font-semibold">
-                                        Your configuration results in a <span className="text-white underline">${riskAmount.toFixed(2)}</span> risk.
-                                        Maximum allowed risk per trade is <span className="text-white underline">$1.00 USDT</span>.
+                                        Your configuration results in a <span className="text-gray-900 dark:text-white underline">${riskAmount.toFixed(2)}</span> risk.
+                                        Maximum allowed risk per trade is <span className="text-gray-900 dark:text-white underline">$1.00 USDT</span>.
                                     </p>
                                 </div>
                             </div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { X, TrendingUp, TrendingDown, Clock } from 'lucide-react';
@@ -94,14 +94,14 @@ export function PositionsTable({
     };
 
     if (positions.length === 0) {
-        return <div className="text-gray-500 text-center py-8">No open positions</div>;
+        return <div className="text-gray-500 dark:text-gray-500 text-center py-8">No open positions</div>;
     }
 
     return (
         <div className="overflow-x-auto">
             <table className="w-full text-left">
                 <thead>
-                    <tr className="border-b border-gray-800 text-gray-400 text-sm">
+                    <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 text-sm">
                         <th className="pb-3">Symbol</th>
                         <th className="pb-3 text-right">Size</th>
                         <th className="pb-3 text-right">Entry</th>
@@ -131,7 +131,7 @@ export function PositionsTable({
                         return (
                             <tr
                                 key={pos.id}
-                                className={`group hover:bg-gray-900/50 ${nearStopLoss ? 'bg-red-900/10' : nearTakeProfit ? 'bg-green-900/10' : ''}`}
+                                className={`group hover:bg-gray-50 dark:bg-gray-900/50 ${nearStopLoss ? 'bg-red-900/10' : nearTakeProfit ? 'bg-green-900/10' : ''}`}
                             >
                                 <td className="py-3 md:py-4 font-medium min-w-[80px]">{pos.symbol}</td>
                                 <td className="py-3 md:py-4 text-right text-gray-300">
@@ -155,7 +155,7 @@ export function PositionsTable({
                                 </td>
                                 <td className="py-3 md:py-4 text-right text-sm">
                                     {stopLoss ? (
-                                        <span className={nearStopLoss ? 'text-red-400 font-medium' : 'text-gray-400'}>
+                                        <span className={nearStopLoss ? 'text-red-400 font-medium' : 'text-gray-600 dark:text-gray-400'}>
                                             ${stopLoss.toFixed(2)}
                                         </span>
                                     ) : (
@@ -164,7 +164,7 @@ export function PositionsTable({
                                 </td>
                                 <td className="py-3 md:py-4 text-right text-sm">
                                     {takeProfit ? (
-                                        <span className={nearTakeProfit ? 'text-green-400 font-medium' : 'text-gray-400'}>
+                                        <span className={nearTakeProfit ? 'text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}>
                                             ${takeProfit.toFixed(2)}
                                         </span>
                                     ) : (
@@ -172,7 +172,7 @@ export function PositionsTable({
                                     )}
                                 </td>
                                 <td className="py-3 md:py-4 text-center">
-                                    <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                                    <span className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
                                         <Clock className="w-3 h-3" />
                                         {getPositionAge(pos.createdAt)}
                                     </span>
@@ -197,9 +197,9 @@ export function PositionsTable({
             </table>
 
             {/* Summary */}
-            <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between text-sm">
-                <span className="text-gray-400">Total Positions: {positions.length}</span>
-                <span className="text-gray-400">
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 flex justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Total Positions: {positions.length}</span>
+                <span className="text-gray-600 dark:text-gray-400">
                     Total Unrealized PnL:
                     <span className={`ml-2 font-medium ${positions.reduce((sum, pos) => {
                         const currentPrice = prices[pos.symbol] || pos.currentPrice || 0;

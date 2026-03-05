@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Bell, X, Info, AlertTriangle, TrendingUp, TrendingDown, ShieldCheck } from 'lucide-react';
@@ -47,9 +47,9 @@ export function NotificationCenter() {
                 onClick={() => setIsOpen(!isOpen)}
                 className="relative p-4 glass-effect rounded-2xl border-white/10 hover:border-blue-500/50 transition-all active:scale-95 group shadow-2xl"
             >
-                <Bell size={24} className={`${unreadCount > 0 ? 'text-blue-400' : 'text-gray-400'} group-hover:text-white transition-colors`} />
+                <Bell size={24} className={`${unreadCount > 0 ? 'text-blue-400' : 'text-gray-600 dark:text-gray-400'} group-hover:text-gray-900 dark:text-white transition-colors`} />
                 {unreadCount > 0 && (
-                    <span className="absolute top-3 right-3 w-5 h-5 bg-blue-600 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-[#05070a] animate-bounce">
+                    <span className="absolute top-3 right-3 w-5 h-5 bg-blue-600 text-gray-900 dark:text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-[#05070a] animate-bounce">
                         {unreadCount}
                     </span>
                 )}
@@ -58,8 +58,8 @@ export function NotificationCenter() {
             {/* Notification Panel */}
             <div className={`absolute top-20 right-0 w-96 glass-effect rounded-[2rem] border-white/10 shadow-2xl transition-all duration-500 origin-top-right overflow-hidden ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-90 opacity-0 -translate-y-4 pointer-events-none'}`}>
                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
-                    <h3 className="font-black text-sm uppercase tracking-widest text-white">Signal Center</h3>
-                    <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors">
+                    <h3 className="font-black text-sm uppercase tracking-widest text-gray-900 dark:text-white">Signal Center</h3>
+                    <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/10 rounded-lg text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:text-white transition-colors">
                         <X size={18} />
                     </button>
                 </div>
@@ -70,7 +70,7 @@ export function NotificationCenter() {
                             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
                                 <ShieldCheck size={32} className="text-gray-600" />
                             </div>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">No active alerts</p>
+                            <p className="text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">No active alerts</p>
                         </div>
                     ) : (
                         notifications.map((n) => (
@@ -81,10 +81,10 @@ export function NotificationCenter() {
                                     </div>
                                     <div className="flex-1 space-y-1">
                                         <div className="flex justify-between items-start">
-                                            <h4 className="text-sm font-black text-white leading-none">{n.title}</h4>
-                                            <span className="text-[9px] font-bold text-gray-500 uppercase">{formatTime(n.timestamp)}</span>
+                                            <h4 className="text-sm font-black text-gray-900 dark:text-white leading-none">{n.title}</h4>
+                                            <span className="text-[9px] font-bold text-gray-500 dark:text-gray-500 uppercase">{formatTime(n.timestamp)}</span>
                                         </div>
-                                        <p className="text-xs text-gray-400 font-medium leading-relaxed">{n.message}</p>
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 font-medium leading-relaxed">{n.message}</p>
                                     </div>
                                 </div>
                             </div>

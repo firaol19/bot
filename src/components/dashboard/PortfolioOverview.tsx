@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { TrendingUp, TrendingDown, Target, Zap, BarChart3, PieChart } from 'lucide-react';
 
@@ -24,10 +24,10 @@ export function PortfolioOverview({ totalProfit, activeBots, winRate, capitalUti
                         <div className="flex justify-between items-start mb-8">
                             <div className="flex items-center gap-3">
                                 <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-                                    <BarChart3 size={20} className="text-gray-400" />
+                                    <BarChart3 size={20} className="text-gray-600 dark:text-gray-400" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Performance Overview</h3>
+                                    <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest leading-none mb-1">Performance Overview</h3>
                                     <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-tighter italic">Consolidated Stats</p>
                                 </div>
                             </div>
@@ -37,7 +37,7 @@ export function PortfolioOverview({ totalProfit, activeBots, winRate, capitalUti
                         </div>
 
                         <div className="flex flex-col md:flex-row md:items-end gap-2 md:gap-6 mb-10">
-                            <h2 className={`text-6xl font-black tracking-tighter ${isProfitPositive ? 'text-white' : 'text-red-400'}`}>
+                            <h2 className={`text-6xl font-black tracking-tighter ${isProfitPositive ? 'text-gray-900 dark:text-white' : 'text-red-400'}`}>
                                 ${Math.abs(totalProfit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h2>
                             <div className="flex items-center gap-2 mb-2">
@@ -63,7 +63,7 @@ export function PortfolioOverview({ totalProfit, activeBots, winRate, capitalUti
                 <div className="absolute inset-0 bg-blue-500/5 blur-[80px]" />
 
                 <div className="relative z-10 w-full space-y-6">
-                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.3em]">Strategy Accuracy</h3>
+                    <h3 className="text-xs font-black text-gray-500 dark:text-gray-500 uppercase tracking-[0.3em]">Strategy Accuracy</h3>
 
                     <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
                         {/* Circular Progress */}
@@ -83,8 +83,8 @@ export function PortfolioOverview({ totalProfit, activeBots, winRate, capitalUti
                             />
                         </svg>
                         <div className="absolute flex flex-col items-center">
-                            <span className="text-4xl font-black text-white">{winRate.toFixed(0)}%</span>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Target Met</span>
+                            <span className="text-4xl font-black text-gray-900 dark:text-white">{winRate.toFixed(0)}%</span>
+                            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Target Met</span>
                         </div>
                     </div>
 
@@ -116,11 +116,11 @@ function StatItem({ icon, label, value, sub, color }: any) {
                 <div className={`p-1.5 rounded-lg ${colorMap[color]}`}>
                     {icon}
                 </div>
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{label}</span>
+                <span className="text-[10px] font-black text-gray-500 dark:text-gray-500 uppercase tracking-widest">{label}</span>
             </div>
             <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold text-white">{value}</span>
-                <span className="text-[10px] text-gray-500 font-bold uppercase">{sub}</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{value}</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-500 font-bold uppercase">{sub}</span>
             </div>
         </div>
     );

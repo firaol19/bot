@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { Wallet, ArrowUpRight, Plus, RefreshCw } from 'lucide-react';
@@ -59,12 +59,12 @@ export function BalanceCard({ mode = 'DEMO' }: { mode?: string }) {
                             <Wallet size={20} className="text-blue-400" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total Equity</h3>
+                            <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest leading-none mb-1">Total Equity</h3>
                             <p className="text-[10px] font-bold text-blue-500/80 uppercase tracking-tighter italic">Primary Portfolio</p>
                         </div>
                     </div>
 
-                    <button onClick={fetchBalance} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-500 hover:text-white">
+                    <button onClick={fetchBalance} className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-500 dark:text-gray-500 hover:text-gray-900 dark:text-white">
                         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                     </button>
                 </div>
@@ -78,10 +78,10 @@ export function BalanceCard({ mode = 'DEMO' }: { mode?: string }) {
                     <div className="space-y-6">
                         <div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-5xl font-black tracking-tighter text-white">
+                                <span className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">
                                     ${balance.total?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
-                                <span className="text-sm font-bold text-gray-500 uppercase">USDT</span>
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-500 uppercase">USDT</span>
                             </div>
                             <div className="mt-2 flex items-center gap-2 text-emerald-400 text-xs font-bold bg-emerald-500/10 w-fit px-2 py-1 rounded-lg border border-emerald-500/20">
                                 <ArrowUpRight size={12} />
@@ -91,11 +91,11 @@ export function BalanceCard({ mode = 'DEMO' }: { mode?: string }) {
 
                         {/* Distribution Bar */}
                         <div className="space-y-3">
-                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500">
+                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-500">
                                 <span>Capital Distribution</span>
                                 <span className="text-blue-400">{usedPercentage.toFixed(1)}% Active</span>
                             </div>
-                            <div className="h-3 w-full bg-gray-950/50 rounded-full p-0.5 border border-white/5 overflow-hidden">
+                            <div className="h-3 w-full bg-white dark:bg-gray-950/50 rounded-full p-0.5 border border-white/5 overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
                                     style={{ width: `${Math.max(usedPercentage, 2)}%` }}
@@ -104,7 +104,7 @@ export function BalanceCard({ mode = 'DEMO' }: { mode?: string }) {
                             <div className="flex justify-between text-[11px] font-semibold">
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                    <span className="text-gray-400">Locked: ${balance.used?.toLocaleString()}</span>
+                                    <span className="text-gray-600 dark:text-gray-400">Locked: ${balance.used?.toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-gray-700" />
@@ -120,7 +120,7 @@ export function BalanceCard({ mode = 'DEMO' }: { mode?: string }) {
                 <button
                     onClick={handleRequestFunds}
                     disabled={requesting}
-                    className="mt-8 flex items-center justify-center gap-2 w-full py-4 bg-white/5 hover:bg-white/10 text-white font-bold text-sm rounded-2xl border border-white/5 transition-all active:scale-[0.98] disabled:opacity-50"
+                    className="mt-8 flex items-center justify-center gap-2 w-full py-4 bg-white/5 hover:bg-white/10 text-gray-900 dark:text-white font-bold text-sm rounded-2xl border border-white/5 transition-all active:scale-[0.98] disabled:opacity-50"
                 >
                     <Plus size={18} className="text-blue-500" />
                     {requesting ? 'Processing Request...' : 'Refill Demo Wallet'}

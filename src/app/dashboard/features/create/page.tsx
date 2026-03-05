@@ -1,9 +1,9 @@
-import { Suspense } from 'react';
+﻿import { Suspense } from 'react';
 import FeaturesBotForm from '@/components/dashboard/FeaturesBotForm';
 
 export default function FeaturesBotPage() {
     return (
-        <main className="min-h-screen bg-[#050505] text-white py-12 px-4 sm:px-6 lg:px-8">
+        <main className="min-h-screen bg-[#050505] text-gray-900 dark:text-white py-12 px-4 sm:px-6 lg:px-8">
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full" />

@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+﻿import { Suspense } from 'react';
 import CreateBotForm from './CreateBotForm';
 
 export const dynamic = 'force-dynamic';

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Activity, Clock, BarChart3, ShieldCheck, Zap } from 'lucide-react';
@@ -47,13 +47,13 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
     if (!analysisData) {
         return (
             <div className="glass-card rounded-[2rem] p-8">
-                <h3 className="text-sm font-black text-white mb-6 uppercase tracking-[0.2em] flex items-center gap-3">
+                <h3 className="text-sm font-black text-gray-900 dark:text-white mb-6 uppercase tracking-[0.2em] flex items-center gap-3">
                     <BarChart3 size={20} className="text-blue-500" />
                     Market Analysis
                 </h3>
                 <div className="py-20 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[2rem] bg-white/2">
                     <div className="w-12 h-12 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin mb-6"></div>
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center px-6 leading-relaxed">
+                    <p className="text-[10px] font-black text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center px-6 leading-relaxed">
                         Initializing Strategy Engine...<br />
                         <span className="text-blue-500/60 mt-2 block">Synchronizing with Bybit Oracle</span>
                     </p>
@@ -82,7 +82,7 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
                         <BarChart3 size={20} className="text-blue-400" />
                     </div>
                     <div>
-                        <h3 className="font-black text-white text-lg uppercase tracking-tight">Strategy Intelligence</h3>
+                        <h3 className="font-black text-gray-900 dark:text-white text-lg uppercase tracking-tight">Strategy Intelligence</h3>
                         <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5">
                                 <span className="relative flex h-2 w-2">
@@ -92,12 +92,12 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
                                 <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">System Live</span>
                             </div>
                             <div className="w-1 h-1 rounded-full bg-gray-700" />
-                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{ping}ms Latency</span>
+                            <span className="text-[9px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">{ping}ms Latency</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-[10px] font-black text-gray-400 bg-white/5 px-4 py-2 rounded-2xl border border-white/5 uppercase tracking-widest">
+                <div className="flex items-center gap-3 text-[10px] font-black text-gray-600 dark:text-gray-400 bg-white/5 px-4 py-2 rounded-2xl border border-white/5 uppercase tracking-widest">
                     <Clock size={14} className="text-blue-500" />
                     <span>Updated {minutesAgo === 0 ? 'Just now' : `${minutesAgo}m ago`}</span>
                 </div>
@@ -120,13 +120,13 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
                         <div key={tf} className="p-6 rounded-[1.5rem] bg-white/2 border border-white/5 hover:border-white/10 transition-colors">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-4">
-                                    <span className="px-4 py-1.5 bg-gray-950/50 rounded-xl text-xs font-black text-blue-400 border border-white/5">{tf}</span>
+                                    <span className="px-4 py-1.5 bg-white dark:bg-gray-950/50 rounded-xl text-xs font-black text-blue-400 border border-white/5">{tf}</span>
                                     <div className={`flex items-center gap-2 px-3 py-1 rounded-lg ${isBullish ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                                         {isBullish ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                                         <span className="text-[10px] font-black uppercase tracking-widest">{isBullish ? 'Bullish' : 'Bearish'}</span>
                                     </div>
                                 </div>
-                                <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border ${tfData.status === 'READY' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-gray-500 border-white/5'}`}>
+                                <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border ${tfData.status === 'READY' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-gray-500 dark:text-gray-500 border-white/5'}`}>
                                     {tfData.status || 'Monitoring'}
                                 </span>
                             </div>
@@ -172,7 +172,7 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
 
                     <div className="flex-1 space-y-4">
                         <div>
-                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Strategy Deployment Status</p>
+                            <p className="text-[10px] font-black text-gray-500 dark:text-gray-500 uppercase tracking-[0.2em] mb-2">Strategy Deployment Status</p>
                             <h4 className={`text-2xl font-black uppercase tracking-tighter ${decision === 'SIGNAL_READY' ? 'text-emerald-400' :
                                 decision === 'ERROR' ? 'text-red-400' :
                                     'text-blue-400'
@@ -181,7 +181,7 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
                             </h4>
                         </div>
 
-                        <p className="text-sm text-gray-400 font-medium leading-relaxed bg-white/2 p-4 rounded-2xl border border-white/5 italic">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed bg-white/2 p-4 rounded-2xl border border-white/5 italic">
                             "{reason}"
                         </p>
 
@@ -198,7 +198,7 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
 
 function MarketMetric({ label, value, accent = 'white' }: any) {
     const accents: any = {
-        white: 'text-white',
+        white: 'text-gray-900 dark:text-white',
         blue: 'text-blue-400',
         purple: 'text-purple-400',
         emerald: 'text-emerald-400'
@@ -206,7 +206,7 @@ function MarketMetric({ label, value, accent = 'white' }: any) {
 
     return (
         <div className="space-y-1.5">
-            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{label}</p>
+            <p className="text-[9px] font-black text-gray-500 dark:text-gray-500 uppercase tracking-widest">{label}</p>
             <p className={`text-sm sm:text-lg font-black tracking-tighter font-mono ${accents[accent]}`}>{value}</p>
         </div>
     );

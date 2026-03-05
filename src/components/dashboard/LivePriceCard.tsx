@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
@@ -64,19 +64,19 @@ export function LivePriceCard({ symbol, initialPrice = 0 }: LivePriceCardProps) 
         <div className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-blue-800/50 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h3 className="text-sm text-gray-400 mb-1">Current Price</h3>
-                    <p className="text-xs text-gray-500">{symbol}</p>
+                    <h3 className="text-sm text-gray-600 dark:text-gray-400 mb-1">Current Price</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">{symbol}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Activity className={`w-4 h-4 ${isLoading ? 'animate-pulse text-blue-400' : 'text-gray-500'}`} />
-                    <span className="text-xs text-gray-500">
+                    <Activity className={`w-4 h-4 ${isLoading ? 'animate-pulse text-blue-400' : 'text-gray-500 dark:text-gray-500'}`} />
+                    <span className="text-xs text-gray-500 dark:text-gray-500">
                         {lastUpdate}s ago
                     </span>
                 </div>
             </div>
 
             <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-white">
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">
                     ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
 
@@ -96,7 +96,7 @@ export function LivePriceCard({ symbol, initialPrice = 0 }: LivePriceCardProps) 
 
             <div className="mt-4 pt-4 border-t border-blue-800/30">
                 <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Previous</span>
+                    <span className="text-gray-600 dark:text-gray-400">Previous</span>
                     <span className="text-gray-300">
                         ${previousPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
