@@ -17,10 +17,10 @@ export default async function BotsPage({ searchParams }: { searchParams: Promise
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Active Bots</h1>
-                <Link href={`/dashboard/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition">
+                <h1 className="text-3xl font-bold">Spot Bots</h1>
+                <Link href={`/dashboard/spot/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition">
                     <Plus size={20} />
-                    <span>Create New Bot</span>
+                    <span>Create Spot Bot</span>
                 </Link>
             </div>
 
@@ -61,7 +61,7 @@ export default async function BotsPage({ searchParams }: { searchParams: Promise
                             </div>
 
                             <Link
-                                href={`/dashboard/bot/${bot.id}?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
+                                href={`/dashboard/spot/bot/${bot.id}?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
                                 className="block w-full py-2 bg-blue-600 hover:bg-blue-700 text-center rounded-lg transition"
                             >
                                 Manage Bot

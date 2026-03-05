@@ -70,7 +70,7 @@ export function BotSettingsForm({ bot }: { bot: any }) {
             });
 
             if (res.ok) {
-                router.push('/dashboard');
+                router.push(bot.type === 'FEATURES' ? '/dashboard/features' : '/dashboard/spot');
                 router.refresh();
             } else {
                 const error = await res.json();

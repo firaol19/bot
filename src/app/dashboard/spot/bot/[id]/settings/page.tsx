@@ -19,7 +19,7 @@ export default async function BotSettingsPage({ params }: { params: Promise<{ id
     return (
         <div className="max-w-3xl mx-auto space-y-6">
             <div className="flex items-center space-x-4">
-                <Link href={`/dashboard/bot/${bot.id}`} className="p-2 hover:bg-gray-800 rounded-lg transition">
+                <Link href={`/dashboard/spot/bot/${bot.id}`} className="p-2 hover:bg-gray-800 rounded-lg transition">
                     <ArrowLeft size={20} />
                 </Link>
                 <div>

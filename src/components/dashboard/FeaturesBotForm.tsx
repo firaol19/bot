@@ -102,7 +102,7 @@ export default function FeaturesBotForm() {
             });
 
             if (res.ok) {
-                router.push(`/dashboard?view=${initialMode === 'REAL' ? 'real' : 'demo'}`);
+                router.push(`/dashboard/features?view=${initialMode === 'REAL' ? 'real' : 'demo'}`);
                 router.refresh();
             } else {
                 const error = await res.json();

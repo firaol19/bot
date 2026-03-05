@@ -159,13 +159,13 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
 
             {/* AI Decision Hub */}
             <div className={`rounded-[2rem] p-8 border-2 transition-all duration-500 ${decision === 'SIGNAL_READY' ? 'bg-emerald-500/5 border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.05)]' :
-                    decision === 'ERROR' ? 'bg-red-500/5 border-red-500/20' :
-                        'bg-blue-500/5 border-blue-500/20'
+                decision === 'ERROR' ? 'bg-red-500/5 border-red-500/20' :
+                    'bg-blue-500/5 border-blue-500/20'
                 }`}>
                 <div className="flex gap-6">
                     <div className={`p-4 rounded-2xl h-fit border ${decision === 'SIGNAL_READY' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                            decision === 'ERROR' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                                'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                        decision === 'ERROR' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                            'bg-blue-500/10 border-blue-500/20 text-blue-400'
                         }`}>
                         <Zap size={24} className={decision === 'SIGNAL_READY' ? 'animate-glow' : ''} />
                     </div>
@@ -174,8 +174,8 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
                         <div>
                             <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Strategy Deployment Status</p>
                             <h4 className={`text-2xl font-black uppercase tracking-tighter ${decision === 'SIGNAL_READY' ? 'text-emerald-400' :
-                                    decision === 'ERROR' ? 'text-red-400' :
-                                        'text-blue-400'
+                                decision === 'ERROR' ? 'text-red-400' :
+                                    'text-blue-400'
                                 }`}>
                                 {decision?.replace(/_/g, ' ')}
                             </h4>
@@ -187,7 +187,7 @@ export function MarketDataPanel({ botId, symbol }: MarketDataPanelProps) {
 
                         <div className="flex items-center gap-2 pt-2">
                             <ShieldCheck size={14} className="text-gray-600" />
-                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Verified by Antigravity Core 1.0</span>
+                            <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Verified by Fira Bot Core 1.0</span>
                         </div>
                     </div>
                 </div>

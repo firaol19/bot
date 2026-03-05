@@ -51,7 +51,7 @@ export default function LoginForm() {
                     <div className="inline-flex items-center justify-center p-3 bg-blue-600/20 rounded-2xl mb-4 border border-blue-500/20">
                         <Bot className="w-10 h-10 text-blue-500" />
                     </div>
-                    <h1 className="text-3xl font-bold tracking-tight">Antigravity Bot</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Fira Bot</h1>
                     <p className="text-gray-400 mt-2 text-sm uppercase tracking-widest font-medium">Welcome back, Strategist</p>
                 </div>
 

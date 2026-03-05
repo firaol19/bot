@@ -120,7 +120,7 @@ export function BotDetailClient({ botId }: BotDetailClientProps) {
                         {actionLoading ? 'Processing...' : isRunning ? 'Stop Bot' : 'Start Bot'}
                     </button>
                     <Link
-                        href={`/dashboard/bot/${botId}/settings`}
+                        href={`/dashboard/spot/bot/${botId}/settings`}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300 hover:text-white font-medium"
                     >
                         <Settings size={18} />

@@ -36,10 +36,10 @@ export function Sidebar() {
                 onClick={() => setIsMobileMenuOpen(false)}
             />
             <NavLink
-                href={`/dashboard/bots${query}`}
+                href={`/dashboard/spot${query}`}
                 icon={<Activity size={20} />}
-                label="Active Bots"
-                isActive={pathname === '/dashboard/bots'}
+                label="Spot Bots"
+                isActive={pathname === '/dashboard/spot'}
                 onClick={() => setIsMobileMenuOpen(false)}
             />
             <NavLink
@@ -55,18 +55,18 @@ export function Sidebar() {
             </div>
 
             <NavLink
-                href={`/dashboard/features${query}`}
+                href={`/dashboard/features/create${query}`}
                 icon={<Plus size={20} />}
                 label="Create Bot"
-                isActive={pathname === '/dashboard/features'}
+                isActive={pathname === '/dashboard/features/create'}
                 variant="accent"
                 onClick={() => setIsMobileMenuOpen(false)}
             />
             <NavLink
-                href={`/dashboard/features/manage${query}`}
+                href={`/dashboard/features${query}`}
                 icon={<Shield size={20} />}
                 label="Manage Bots"
-                isActive={pathname === '/dashboard/features/manage'}
+                isActive={pathname === '/dashboard/features'}
                 onClick={() => setIsMobileMenuOpen(false)}
             />
 
@@ -93,7 +93,7 @@ export function Sidebar() {
                         <Zap size={24} className="text-white fill-current" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-black tracking-tighter text-white">ANTIGRAVITY</h1>
+                        <h1 className="text-lg font-black tracking-tighter text-white">FIRA BOT</h1>
                         <p className="text-[10px] text-blue-400 font-bold tracking-widest uppercase">Trading Pro</p>
                     </div>
                 </div>
@@ -126,7 +126,7 @@ export function Sidebar() {
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-3">
                             <Zap size={24} className="text-blue-500" />
-                            <span className="font-black tracking-tighter text-xl">ANTIGRAVITY</span>
+                            <span className="font-black tracking-tighter text-xl">FIRA BOT</span>
                         </div>
                         <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 glass-card rounded-xl text-gray-400 hover:text-white">
                             <X size={20} />
@@ -152,7 +152,7 @@ export function Sidebar() {
             {/* Mobile Bottom Nav */}
             <div className="md:hidden fixed bottom-6 left-6 right-6 h-20 glass-effect rounded-[2.5rem] flex justify-around items-center px-4 z-[90] shadow-2xl border-white/10">
                 <MobileTabIcon href={`/dashboard${query}`} icon={<Home size={22} />} isActive={pathname === '/dashboard'} />
-                <MobileTabIcon href={`/dashboard/bots${query}`} icon={<Activity size={22} />} isActive={pathname === '/dashboard/bots'} />
+                <MobileTabIcon href={`/dashboard/spot${query}`} icon={<Activity size={22} />} isActive={pathname === '/dashboard/spot'} />
 
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}

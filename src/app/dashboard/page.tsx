@@ -50,7 +50,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </div>
 
                 <Link
-                    href={`/dashboard/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
+                    href={`/dashboard/spot/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
                     className="flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-blue-500/20"
                 >
                     <Plus size={20} strokeWidth={3} />
@@ -140,14 +140,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
                                 <div className="flex flex-col gap-3">
                                     <Link
-                                        href={`/dashboard/bot/${bot.id}?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
+                                        href={`/dashboard/spot/bot/${bot.id}?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
                                         className="flex items-center justify-center gap-2 w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black text-sm rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]"
                                     >
                                         CONTROL PANEL
                                         <ChevronRight size={16} />
                                     </Link>
                                     <Link
-                                        href={`/dashboard/bot/${bot.id}/settings`}
+                                        href={`/dashboard/spot/bot/${bot.id}/settings`}
                                         className="flex items-center justify-center gap-2 w-full py-4 bg-white/5 hover:bg-white/10 text-white font-black text-sm rounded-2xl border border-white/5 transition-colors"
                                     >
                                         ADJUST STRATEGY
@@ -159,7 +159,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
                     {/* Create New Bot Call to Action */}
                     <Link
-                        href={`/dashboard/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
+                        href={`/dashboard/spot/create?view=${currentMode === 'REAL' ? 'real' : 'demo'}`}
                         className="glass-card border-dashed border-2 border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center p-12 hover:bg-blue-500/5 hover:border-blue-500/30 transition-all cursor-pointer group min-h-[350px]"
                     >
                         <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 text-gray-400 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500 rotate-0 group-hover:rotate-90">

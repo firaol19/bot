@@ -82,7 +82,7 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4">
-                    <Link href="/dashboard/features/manage" className="p-2 hover:bg-gray-800 rounded-lg transition text-gray-400 hover:text-white">
+                    <Link href="/dashboard/features" className="p-2 hover:bg-gray-800 rounded-lg transition text-gray-400 hover:text-white">
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
@@ -120,7 +120,7 @@ export function FeaturesBotDetailClient({ botId }: FeaturesBotDetailClientProps)
                         {actionLoading ? '...' : isRunning ? 'Stop Bot' : 'Start Bot'}
                     </button>
                     <Link
-                        href={`/dashboard/bot/${botId}/settings`}
+                        href={`/dashboard/features/bot/${botId}/settings`}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-xl transition text-gray-300 hover:text-white border border-gray-700"
                     >
                         <Settings size={18} />
