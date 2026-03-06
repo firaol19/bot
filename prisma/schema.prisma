@@ -90,6 +90,8 @@ model Position {
   pnl       Float?
   side      String   @default("LONG") // LONG, SHORT
   status    String   @default("OPEN") // OPEN, CLOSED
+  stopLossPrice   Float?  // Actual SL price set on Bybit (for REAL) or simulated (for DEMO)
+  takeProfitPrice Float?  // Actual TP price set on Bybit (for REAL) or simulated (for DEMO)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -9,6 +9,7 @@ import { BreakoutStrategy } from '@/lib/trading/breakout-volume';
 import { MeanReversionStrategy } from '@/lib/trading/mean-reversion';
 import { FundingRateStrategy } from '@/lib/trading/funding-oi-bias';
 import { SidewaysGridStrategy } from '@/lib/trading/sideways-grid';
+import { ConfluenceStrategy } from '@/lib/trading/confluence-strategy';
 
 
 export class BotEngine {
@@ -57,6 +58,9 @@ export class BotEngine {
                     break;
                 case 'SidewaysGrid':
                     this.strategy = new SidewaysGridStrategy();
+                    break;
+                case 'Confluence':
+                    this.strategy = new ConfluenceStrategy();
                     break;
                 default:
                     this.strategy = new MultiTimeframeStrategy();
@@ -187,10 +191,43 @@ export class BotEngine {
 
             if (!bot || bot.positions.length === 0) return;
 
-            // Fetch positions from exchange for this SYMBOL
+            // ✅ FIX: Skip exchange sync entirely for DEMO mode.
+            // In DEMO mode, no real orders are placed on the exchange, so
+            // querying for positions will always return empty, causing the bot
+            // to immediately close freshly-opened local positions.
+            if (bot.mode === 'DEMO') {
+                // In DEMO mode, just update the PnL in DB using the last known price
+                const lastPrice = bot.lastPrice || 0;
+                if (lastPrice > 0) {
+                    for (const position of bot.positions) {
+                        const profit = position.side === 'SHORT'
+                            ? (position.entryPrice - lastPrice) * position.amount
+                            : (lastPrice - position.entryPrice) * position.amount;
+                        await prisma.position.update({
+                            where: { id: position.id },
+                            data: { currentPrice: lastPrice, pnl: profit }
+                        });
+                    }
+                }
+                return;
+            }
+
+            // Fetch positions from exchange for this SYMBOL (REAL mode only)
             const exchangePositions = await this.exchange.getPositions(bot.symbol);
 
+            // ✅ FIX: Grace period — do NOT sync a position that was JUST opened.
+            // Wait at least 2 minutes after creation before treating it as "missing".
+            const GRACE_PERIOD_MS = 2 * 60 * 1000;
+            const now = Date.now();
+
             for (const position of bot.positions) {
+                // Skip newly-opened positions during grace period
+                const ageMs = now - new Date(position.createdAt).getTime();
+                if (ageMs < GRACE_PERIOD_MS) {
+                    await this.logInfo(bot.id, `Sync: Skipping position ${position.id} — within ${Math.round((GRACE_PERIOD_MS - ageMs) / 1000)}s grace period.`);
+                    continue;
+                }
+
                 // Find matching position on exchange (same symbol and side)
                 const exPos = exchangePositions.find((p: any) =>
                     p.symbol === this.exchange!.normalizeSymbol(bot.symbol) &&
@@ -241,7 +278,7 @@ export class BotEngine {
             if (bot.type === 'FEATURES' && bot.positions.length === 0) {
                 const now = Date.now();
                 // Check strategy type for interval
-                const isExistingStrategy = !bot.strategyName || bot.strategyName === 'MultiTimeframe';
+                const isExistingStrategy = !bot.strategyName || bot.strategyName === 'MultiTimeframe' || bot.strategyName === 'Confluence';
                 const interval = isExistingStrategy ? 5 * 60 * 1000 : 10 * 60 * 1000;
 
                 if (now - this.lastAnalysisTime >= interval) {
@@ -419,11 +456,47 @@ export class BotEngine {
                 currentPrice
             );
 
-            // 🚀 FEATURES FIX: If this is a FEATURES bot, we usually let Bybit handle SL/TP.
-            // We only trigger local sell if it's NOT a features bot or if there's no TP/SL set on Bybit (Safety).
             const isFeatures = bot.type === 'FEATURES';
 
-            if (!isFeatures) {
+            if (isFeatures) {
+                // ✅ FIX: For FEATURES bots in DEMO mode, simulate SL/TP locally.
+                // In REAL mode, Bybit handles SL/TP via exchange orders set at open.
+                // In DEMO mode there are no real exchange orders, so we must check locally.
+                if (bot.mode === 'DEMO') {
+                    const isLong = position.side !== 'SHORT';
+
+                    // Use stored SL/TP prices — these were computed and saved at position open time.
+                    // Never recalculate here to avoid mismatch.
+                    const slPrice: number | null = position.stopLossPrice ?? null;
+                    const tpPrice: number | null = position.takeProfitPrice ?? null;
+
+                    // Check Stop Loss
+                    const slHit = slPrice !== null && (isLong ? currentPrice <= slPrice : currentPrice >= slPrice);
+                    if (slHit) {
+                        await this.logWarning(bot.id, `[DEMO] Stop loss triggered for position ${position.id} at ${currentPrice} (SL: ${slPrice?.toFixed(2)})`);
+                        await this.createAlert(bot.id, 'STOP_LOSS', `[DEMO] Stop loss triggered at $${currentPrice.toFixed(2)}. Loss: $${riskSummary.pnl.toFixed(2)}`);
+                        await this.sell(bot, position, currentPrice, 'STOP_LOSS', true);
+                        continue;
+                    }
+
+                    // Check Take Profit
+                    const tpHit = tpPrice !== null && (isLong ? currentPrice >= tpPrice : currentPrice <= tpPrice);
+                    if (tpHit) {
+                        await this.logInfo(bot.id, `[DEMO] Take profit triggered for position ${position.id} at ${currentPrice} (TP: ${tpPrice?.toFixed(2)})`);
+                        await this.createAlert(bot.id, 'TAKE_PROFIT', `[DEMO] Take profit triggered at $${currentPrice.toFixed(2)}. Profit: $${riskSummary.pnl.toFixed(2)}`);
+                        await this.sell(bot, position, currentPrice, 'TAKE_PROFIT', true);
+                        continue;
+                    }
+
+                    // Update PnL in DB for UI
+                    await prisma.position.update({
+                        where: { id: position.id },
+                        data: { currentPrice, pnl: riskSummary.pnl }
+                    });
+                }
+                // In REAL mode: Bybit handles SL/TP — sync heartbeat detects closures via getPositions().
+
+            } else {
                 // Check Stop Loss
                 if (riskSummary.shouldStopLoss) {
                     await this.logWarning(bot.id, `Stop loss triggered for position ${position.id} at ${currentPrice}`);
@@ -451,7 +524,7 @@ export class BotEngine {
                 }
 
                 // Check regular sell conditions (grid strategy)
-                if (bot.type !== 'FEATURES' && (this.strategy as GridStrategy).shouldSell(currentPrice, position.entryPrice, bot.sellPercentage)) {
+                if ((this.strategy as GridStrategy).shouldSell(currentPrice, position.entryPrice, bot.sellPercentage)) {
                     await this.logInfo(bot.id, `Grid sell triggered for position ${position.id} at ${currentPrice} (Profit target reached)`);
                     await this.sell(bot, position, currentPrice, 'GRID_SELL');
                 }
@@ -654,6 +727,80 @@ export class BotEngine {
 
                         orderId = order.id;
                         await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
+
+                        // ✅ FIX 1: Confirm position actually opened on Bybit before recording locally.
+                        // Poll up to 3 times (2s apart) for the position to appear.
+                        let confirmedPosition: any = null;
+                        const positionSide: 'LONG' | 'SHORT' = trend === 'LONG' ? 'LONG' : 'SHORT';
+                        for (let attempt = 1; attempt <= 3; attempt++) {
+                            await new Promise(r => setTimeout(r, 2000));
+                            try {
+                                confirmedPosition = await this.exchange.getPosition(bot.symbol, positionSide);
+                                if (confirmedPosition) break;
+                            } catch (e: any) {
+                                await this.logWarning(bot.id, `Attempt ${attempt}: Could not verify position on exchange: ${e.message}`);
+                            }
+                        }
+
+                        if (!confirmedPosition) {
+                            await this.logError(bot.id, `⚠️ Order ${orderId} was submitted but position was NOT confirmed open on Bybit after 3 attempts. Skipping local DB record to prevent ghost positions.`);
+                            await this.createAlert(bot.id, 'ERROR', `Order placed but position not confirmed on exchange. Please check Bybit manually for order ${orderId}.`);
+                            return; // Do NOT write to DB
+                        }
+
+                        // ✅ FIX 2: Use Bybit's actual fill price and SL/TP — NOT our estimated values.
+                        // This eliminates the mismatch between local and exchange SL/TP.
+                        const actualEntryPrice = parseFloat(confirmedPosition.entryPrice || confirmedPosition.info?.avgPrice || price);
+                        const actualAmount = parseFloat(confirmedPosition.contracts || confirmedPosition.info?.size || finalAmount);
+
+                        // Bybit stores SL/TP as strings in info; parse them
+                        const actualSlPrice = parseFloat(confirmedPosition.stopLossPrice || confirmedPosition.info?.stopLoss || '0') || null;
+                        const actualTpPrice = parseFloat(confirmedPosition.takeProfitPrice || confirmedPosition.info?.takeProfit || '0') || null;
+
+                        await this.logInfo(bot.id, `✅ Position confirmed on Bybit. Entry: $${actualEntryPrice}, SL: $${actualSlPrice ?? 'none'}, TP: $${actualTpPrice ?? 'none'}`);
+
+                        finalAmount = actualAmount > 0 ? actualAmount : finalAmount;
+
+                        // Record in DB with Bybit-confirmed values
+                        try {
+                            const finalTradeValue = finalAmount * actualEntryPrice;
+                            await prisma.$transaction([
+                                prisma.position.create({
+                                    data: {
+                                        botId: bot.id,
+                                        symbol: bot.symbol,
+                                        amount: finalAmount,
+                                        entryPrice: actualEntryPrice,
+                                        side: positionSide,
+                                        status: 'OPEN',
+                                        stopLossPrice: actualSlPrice,
+                                        takeProfitPrice: actualTpPrice,
+                                    } as any
+                                }),
+                                prisma.trade.create({
+                                    data: {
+                                        botId: bot.id,
+                                        symbol: bot.symbol,
+                                        side: positionSide === 'LONG' ? 'BUY' : 'SELL',
+                                        amount: finalAmount,
+                                        price: actualEntryPrice,
+                                        total: finalTradeValue,
+                                        orderId: orderId
+                                    }
+                                }),
+                                prisma.bot.update({
+                                    where: { id: bot.id },
+                                    data: { totalBuys: { increment: 1 } } as any
+                                })
+                            ]);
+
+                            this.riskManager.recordTrade();
+                            await this.logInfo(bot.id, `[REAL] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${actualEntryPrice.toFixed(2)} (SL: $${actualSlPrice?.toFixed(2) ?? 'none'}, TP: $${actualTpPrice?.toFixed(2) ?? 'none'})`);
+                        } catch (dbError: any) {
+                            await this.logError(bot.id, `Failed to record confirmed trade in database: ${dbError.message}`);
+                        }
+
+                        return; // REAL mode: recording is done inline above, skip the generic block below
                     } else {
                         finalAmount = precisionAmount;
                     }
@@ -666,9 +813,24 @@ export class BotEngine {
                 }
             }
 
-            // Record in DB
+            // Record in DB for DEMO mode (or bots with no exchange configured)
             try {
                 const finalTradeValue = finalAmount * price;
+                const positionSide = bot.type === 'FEATURES' ? (trend === 'LONG' ? 'LONG' : 'SHORT') : 'LONG';
+                const isLong = trend === 'LONG';
+
+                // Calculate local SL/TP prices for DEMO simulation
+                const demoSlPrice = bot.stopLossPercentage
+                    ? parseFloat(this.exchange?.priceToPrecision(bot.symbol, isLong
+                        ? price * (1 - bot.stopLossPercentage / 100)
+                        : price * (1 + bot.stopLossPercentage / 100)) || '0') || null
+                    : null;
+                const demoTpPrice = bot.takeProfitPercentage
+                    ? parseFloat(this.exchange?.priceToPrecision(bot.symbol, isLong
+                        ? price * (1 + bot.takeProfitPercentage / 100)
+                        : price * (1 - bot.takeProfitPercentage / 100)) || '0') || null
+                    : null;
+
                 await prisma.$transaction([
                     prisma.position.create({
                         data: {
@@ -676,8 +838,10 @@ export class BotEngine {
                             symbol: bot.symbol,
                             amount: finalAmount,
                             entryPrice: price,
-                            side: bot.type === 'FEATURES' ? (trend === 'LONG' ? 'LONG' : 'SHORT') : 'LONG',
-                            status: 'OPEN'
+                            side: positionSide,
+                            status: 'OPEN',
+                            stopLossPrice: demoSlPrice,
+                            takeProfitPrice: demoTpPrice,
                         } as any
                     }),
                     prisma.trade.create({
@@ -693,14 +857,12 @@ export class BotEngine {
                     }),
                     prisma.bot.update({
                         where: { id: bot.id },
-                        data: {
-                            totalBuys: { increment: 1 }
-                        } as any
+                        data: { totalBuys: { increment: 1 } } as any
                     })
                 ]);
 
-                this.riskManager.recordTrade(); // Record trade in risk manager
-                await this.logInfo(bot.id, `[${bot.mode}] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)}`);
+                this.riskManager.recordTrade();
+                await this.logInfo(bot.id, `[${bot.mode}] Opened ${trend} position: ${finalAmount.toFixed(6)} ${bot.symbol} at $${price.toFixed(2)} (SL: $${demoSlPrice?.toFixed(2) ?? 'none'}, TP: $${demoTpPrice?.toFixed(2) ?? 'none'})`);
 
             } catch (error: any) {
                 await this.logError(bot.id, `Failed to record trade in database: ${error.message}`);

@@ -104,6 +104,40 @@ export class BybitClient {
         return positions;
     }
 
+    /**
+     * Fetch a single open position for a symbol/side from Bybit.
+     * Returns null if no matching open position exists.
+     * The returned object includes: contracts/size, entryPrice, stopLossPrice, takeProfitPrice, markPrice, side.
+     */
+    async getPosition(symbol: string, side: 'LONG' | 'SHORT'): Promise<any | null> {
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        if (!isLinear) return null;
+
+        const normalizedSymbol = this.normalizeSymbol(symbol);
+        const positions = await this.client.fetchPositions([normalizedSymbol], { category: 'linear' });
+
+        // Bybit returns "Buy" for LONG, "Sell" for SHORT in side field
+        const exchangeSide = side === 'LONG' ? 'long' : 'short';
+        const match = positions.find((p: any) => {
+            const pSide = (p.side || p.info?.side || '').toLowerCase();
+            const pSymbol = p.symbol || '';
+            const hasSize = parseFloat(p.contracts || p.info?.size || 0) > 0;
+            return pSymbol === normalizedSymbol && pSide === exchangeSide && hasSize;
+        });
+
+        return match || null;
+    }
+
+    /**
+     * Fetch an order by ID to check if it was filled.
+     */
+    async fetchOrder(symbol: string, orderId: string): Promise<any> {
+        const normalizedSymbol = this.normalizeSymbol(symbol);
+        const isLinear = this.client.options['defaultType'] === 'linear';
+        const category = isLinear ? 'linear' : 'spot';
+        return await this.client.fetchOrder(orderId, normalizedSymbol, { category });
+    }
+
     async getKlines(symbol: string, timeframe: string, limit?: number) {
         // ✅ FIX: In Bybit V5, market data needs category (spot, linear, inverse, option)
         const normalizedSymbol = this.normalizeSymbol(symbol);

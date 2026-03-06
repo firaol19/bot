@@ -164,6 +164,7 @@ export default function FeaturesBotForm() {
                                         <option value="Breakout">Breakout (Bollinger Bands + Volume)</option>
                                         <option value="MeanReversion">Mean Reversion (RSI + BB)</option>
                                         <option value="FundingBias">Funding Rate + OI Bias</option>
+                                        <option value="Confluence">Confluence (High Prob High Freq)</option>
                                         <option value="SidewaysGrid">Grid Bot (Sideways Market Optimized)</option>
                                     </select>
                                 </div>
