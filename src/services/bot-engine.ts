@@ -299,6 +299,26 @@ export class BotEngine {
         if (!this.exchange || bot.type !== 'FEATURES') return;
 
         try {
+            // ✅ EXTRA SAFETY: Check if a position is ALREADY open on Bybit for this symbol
+            // This prevents "open then close" loops if local DB is out of sync.
+            try {
+                const existingPositions = await this.exchange.getPositions(bot.symbol);
+                const hasOpenPosition = existingPositions.some((p: any) =>
+                    parseFloat(p.contracts || p.info?.size || 0) > 0
+                );
+
+                if (hasOpenPosition) {
+                    await this.logInfo(bot.id, `Periodic Analysis: Skipping — a position is already open on Bybit for ${bot.symbol}.`);
+                    // If DB thinks we have 0, but exchange has 1, let sync heartbeat fix it (or force sync now)
+                    if (bot.positions.length === 0) {
+                        await this.syncPositionsWithExchange();
+                    }
+                    return;
+                }
+            } catch (pError: any) {
+                await this.logWarning(bot.id, `Pre-analysis position check failed: ${pError.message}`);
+            }
+
             // Call strategy analysis report
             const report = await this.strategy.getAnalysisReport(bot.symbol, this.exchange);
 
@@ -729,35 +749,64 @@ export class BotEngine {
                         await this.logInfo(bot.id, `Order executed successfully. Order ID: ${orderId}`);
 
                         // ✅ FIX 1: Confirm position actually opened on Bybit before recording locally.
-                        // Poll up to 3 times (2s apart) for the position to appear.
+                        // Poll up to 5 times (2s apart) for the position to appear (Total 10s wait).
                         let confirmedPosition: any = null;
                         const positionSide: 'LONG' | 'SHORT' = trend === 'LONG' ? 'LONG' : 'SHORT';
-                        for (let attempt = 1; attempt <= 3; attempt++) {
+
+                        await this.logInfo(bot.id, `Waiting for position ${positionSide} to appear on Bybit for ${bot.symbol}...`);
+
+                        for (let attempt = 1; attempt <= 5; attempt++) {
                             await new Promise(r => setTimeout(r, 2000));
                             try {
                                 confirmedPosition = await this.exchange.getPosition(bot.symbol, positionSide);
-                                if (confirmedPosition) break;
+                                if (confirmedPosition) {
+                                    await this.logInfo(bot.id, `Attempt ${attempt}: Position confirmed via positions list.`);
+                                    break;
+                                }
                             } catch (e: any) {
                                 await this.logWarning(bot.id, `Attempt ${attempt}: Could not verify position on exchange: ${e.message}`);
                             }
                         }
 
+                        // ✅ FALLBACK: If position still not in list, check if the ORDER was filled.
+                        // Sometimes Bybit's positions list lags longer than the order execution.
+                        if (!confirmedPosition && orderId) {
+                            try {
+                                const orderStatus = await this.exchange.fetchOrder(bot.symbol, orderId);
+                                if (orderStatus && (orderStatus.status === 'closed' || orderStatus.status === 'filled')) {
+                                    await this.logInfo(bot.id, `Fallback: Order ${orderId} is FILLED. Proceeding even if position list is lagging.`);
+
+                                    // Construct a "virtual" position from order data
+                                    confirmedPosition = {
+                                        entryPrice: orderStatus.average || orderStatus.price || price,
+                                        contracts: orderStatus.filled || precisionAmount,
+                                        side: positionSide,
+                                        stopLossPrice: params.stopLoss,
+                                        takeProfitPrice: params.takeProfit
+                                    };
+                                }
+                            } catch (fetchError: any) {
+                                await this.logWarning(bot.id, `Fallback check failed for order ${orderId}: ${fetchError.message}`);
+                            }
+                        }
+
                         if (!confirmedPosition) {
-                            await this.logError(bot.id, `⚠️ Order ${orderId} was submitted but position was NOT confirmed open on Bybit after 3 attempts. Skipping local DB record to prevent ghost positions.`);
+                            await this.logError(bot.id, `⚠️ Order ${orderId} was submitted but position was NOT confirmed open on Bybit after 5 attempts + fallback. Skipping local DB record to prevent ghost positions.`);
                             await this.createAlert(bot.id, 'ERROR', `Order placed but position not confirmed on exchange. Please check Bybit manually for order ${orderId}.`);
                             return; // Do NOT write to DB
                         }
 
                         // ✅ FIX 2: Use Bybit's actual fill price and SL/TP — NOT our estimated values.
-                        // This eliminates the mismatch between local and exchange SL/TP.
-                        const actualEntryPrice = parseFloat(confirmedPosition.entryPrice || confirmedPosition.info?.avgPrice || price);
-                        const actualAmount = parseFloat(confirmedPosition.contracts || confirmedPosition.info?.size || finalAmount);
+                        const actualEntryPrice = parseFloat(confirmedPosition.entryPrice || price);
+                        const actualAmount = parseFloat(confirmedPosition.contracts || confirmedPosition.size || confirmedPosition.amount || finalAmount);
 
-                        // Bybit stores SL/TP as strings in info; parse them
-                        const actualSlPrice = parseFloat(confirmedPosition.stopLossPrice || confirmedPosition.info?.stopLoss || '0') || null;
-                        const actualTpPrice = parseFloat(confirmedPosition.takeProfitPrice || confirmedPosition.info?.takeProfit || '0') || null;
+                        // Extract SL/TP from confirmed position (might be string or number depending on CCXT/Bybit V5)
+                        const rawSl = confirmedPosition.stopLossPrice || confirmedPosition.info?.stopLoss || '0';
+                        const rawTp = confirmedPosition.takeProfitPrice || confirmedPosition.info?.takeProfit || '0';
+                        const actualSlPrice = parseFloat(rawSl) || null;
+                        const actualTpPrice = parseFloat(rawTp) || null;
 
-                        await this.logInfo(bot.id, `✅ Position confirmed on Bybit. Entry: $${actualEntryPrice}, SL: $${actualSlPrice ?? 'none'}, TP: $${actualTpPrice ?? 'none'}`);
+                        await this.logInfo(bot.id, `✅ Position confirmed. Entry: $${actualEntryPrice}, SL: $${actualSlPrice ?? 'none'}, TP: $${actualTpPrice ?? 'none'}`);
 
                         finalAmount = actualAmount > 0 ? actualAmount : finalAmount;
 
