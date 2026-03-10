@@ -278,8 +278,9 @@ export class BotEngine {
             if (bot.type === 'FEATURES' && bot.positions.length === 0) {
                 const now = Date.now();
                 // Check strategy type for interval
-                const isExistingStrategy = !bot.strategyName || bot.strategyName === 'MultiTimeframe' || bot.strategyName === 'Confluence';
-                const interval = isExistingStrategy ? 5 * 60 * 1000 : 10 * 60 * 1000;
+                const isExistingStrategy = !bot.strategyName || bot.strategyName === 'MultiTimeframe';
+                const isScalpingStrategy = bot.strategyName === 'Confluence';
+                const interval = isScalpingStrategy ? 1 * 60 * 1000 : (isExistingStrategy ? 5 * 60 * 1000 : 10 * 60 * 1000);
 
                 if (now - this.lastAnalysisTime >= interval) {
                     this.lastAnalysisTime = now;

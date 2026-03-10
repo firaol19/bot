@@ -76,23 +76,23 @@ export class ConfluenceStrategy {
             const prices5m = klines5m.map((k: any) => k[4]);
             const currentPrice = prices5m[prices5m.length - 1];
 
-            const ema21 = this.calculateEMA(prices5m, 21);
-            const ema55 = this.calculateEMA(prices5m, 55);
+            // Faster EMA combination for scalping
+            const emaFast = this.calculateEMA(prices5m, 13); // Changed from 21
+            const emaSlow = this.calculateEMA(prices5m, 34); // Changed from 55
             const rsi5m = this.calculateRSI(prices5m, 14);
             const bb5m = this.calculateBB(prices5m, 20, 2);
 
             let trendBias: 'LONG' | 'SHORT' | 'NONE' = 'NONE';
-            if (ema21 > ema55 && currentPrice > ema21) trendBias = 'LONG';
-            else if (ema21 < ema55 && currentPrice < ema21) trendBias = 'SHORT';
+            if (emaFast > emaSlow && currentPrice > emaFast) trendBias = 'LONG';
+            else if (emaFast < emaSlow && currentPrice < emaFast) trendBias = 'SHORT';
 
-            report.indicators = { currentPrice, ema21, ema55, rsi5m, ...bb5m };
+            report.indicators = { currentPrice, emaFast, emaSlow, rsi5m, ...bb5m };
             report.timeframes['5m'] = {
                 status: 'READY',
-                indicators: { ema21, ema55, rsi: rsi5m, price: currentPrice }
+                indicators: { emaFast, emaSlow, rsi: rsi5m, price: currentPrice }
             };
 
             if (trendBias === 'NONE') {
-                // Try market structure on 5m before giving up — EMA may lag on choppy open
                 const structureUp = this.checkStructure(klines5m, 'LONG');
                 const structureDown = this.checkStructure(klines5m, 'SHORT');
                 if (structureUp) trendBias = 'LONG';
@@ -101,20 +101,18 @@ export class ConfluenceStrategy {
 
             if (trendBias === 'NONE') {
                 report.decision = 'WAITING_FOR_TREND';
-                report.reason = `5m EMAs not aligned (EMA21=${ema21.toFixed(2)}, EMA55=${ema55.toFixed(2)}).`;
+                report.reason = `5m Trend not aligned (EMA13=${emaFast.toFixed(2)}, EMA34=${emaSlow.toFixed(2)}).`;
                 return report;
             }
 
             // ═══════════════════════════════════════════════════════════════
-            // LAYER 2 — FUNDING RATE BIAS  (SOFT FILTER — blocks contradiction)
+            // LAYER 2 — FUNDING RATE BIAS  (SOFT FILTER)
             // ═══════════════════════════════════════════════════════════════
             let fundingRate = 0;
             try {
                 fundingRate = await exchange.getFundingRate(symbol);
                 report.indicators.fundingRate = fundingRate;
 
-                // BLOCK only if funding strongly contradicts our trend bias
-                // Threshold: > 0.005% (half of the original strategy's 0.01%)
                 const FUNDING_BLOCK_THRESHOLD = 0.005;
                 const fundingContradicts =
                     (trendBias === 'LONG' && fundingRate > FUNDING_BLOCK_THRESHOLD) ||
@@ -122,67 +120,85 @@ export class ConfluenceStrategy {
 
                 if (fundingContradicts) {
                     report.decision = 'WAITING_FOR_FUNDING_ALIGNMENT';
-                    report.reason = `Trend bias is ${trendBias} but funding rate (${(fundingRate * 100).toFixed(4)}%) contradicts it — crowd is against us.`;
+                    report.reason = `Trend bias is ${trendBias} but funding rate (${(fundingRate * 100).toFixed(4)}%) contradicts it.`;
                     return report;
                 }
             } catch (_) {
-                // Funding fetch failed — treat as neutral, do not block
                 report.indicators.fundingRate = 'N/A';
             }
 
             // ═══════════════════════════════════════════════════════════════
-            // LAYER 3 — 1m ENTRY TRIGGER: BREAKOUT  or  PULLBACK  (HARD GATE)
+            // LAYER 3 — 1m ENTRY TRIGGER: BREAKOUT or PULLBACK (HARD GATE)
             // ═══════════════════════════════════════════════════════════════
-            const klines1m = await exchange.getKlines(symbol, '1m', 30);
+            const klines1m = await exchange.getKlines(symbol, '1m', 50);
             const prices1m = klines1m.map((k: any) => k[4]);
+            const highs1m = klines1m.map((k: any) => k[2]);
+            const lows1m = klines1m.map((k: any) => k[3]);
             const volumes1m = klines1m.map((k: any) => k[5]);
             const price1m = prices1m[prices1m.length - 1];
+
+            const ema1m_21 = this.calculateEMA(prices1m, 21);
             const rsi1m = this.calculateRSI(prices1m, 14);
             const bb1m = this.calculateBB(prices1m, 20, 2);
 
+            // Volume Analysis
             const avgVol1m = volumes1m.slice(-11, -1).reduce((a: number, b: number) => a + b, 0) / 10;
             const currentVol1m = volumes1m[volumes1m.length - 1];
-            const volumeSpike = currentVol1m > avgVol1m * 1.4; // 1.4× spike threshold
+            const volumeSpike = currentVol1m > avgVol1m * 1.5;
 
-            report.indicators = { ...report.indicators, rsi1m, bb1m_upper: bb1m.upper, bb1m_lower: bb1m.lower, volumeMultiple: currentVol1m / (avgVol1m || 1) };
+            // Anti-Chasing Candle Analysis
+            const lastCandleRange = highs1m[highs1m.length - 1] - lows1m[lows1m.length - 1];
+            const avgRange1m = Array(10).fill(0).map((_, i) => highs1m[highs1m.length - 2 - i] - lows1m[lows1m.length - 2 - i]).reduce((a, b) => a + b, 0) / 10;
+            const isExhaustive = lastCandleRange > avgRange1m * 2.5;
+
+            report.indicators = {
+                ...report.indicators,
+                rsi1m,
+                ema1m_21,
+                volumeMultiple: currentVol1m / (avgVol1m || 1),
+                candleRangeRatio: lastCandleRange / (avgRange1m || 1)
+            };
+
             report.timeframes['1m'] = {
                 status: 'READY',
-                indicators: { rsi: rsi1m, upper: bb1m.upper, lower: bb1m.lower, price: price1m }
+                indicators: { rsi: rsi1m, price: price1m, ema21: ema1m_21 }
             };
 
             let entrySetup: 'BREAKOUT' | 'PULLBACK' | null = null;
 
-            // Setup A — Breakout: price pierces BB in trend direction + volume confirmation
-            if (trendBias === 'LONG' && price1m > bb1m.upper && volumeSpike) entrySetup = 'BREAKOUT';
-            if (trendBias === 'SHORT' && price1m < bb1m.lower && volumeSpike) entrySetup = 'BREAKOUT';
+            // Setup A — Refined Breakout (with Exhaustion Protection)
+            if (!isExhaustive && volumeSpike) {
+                if (trendBias === 'LONG' && price1m > bb1m.upper) entrySetup = 'BREAKOUT';
+                if (trendBias === 'SHORT' && price1m < bb1m.lower) entrySetup = 'BREAKOUT';
+            }
 
-            // Setup B — Pullback: price dipped into opposite BB zone (buy the dip / sell the rip)
-            //   LONG pullback:  price near lower band AND RSI oversold on 1m (< 38)
-            //   SHORT pullback: price near upper band AND RSI overbought on 1m (> 62)
+            // Setup B — Scalp Pullback (EMA 21 touch)
             if (!entrySetup) {
-                const nearLower = price1m <= bb1m.lower * 1.003; // within 0.3% of lower band
-                const nearUpper = price1m >= bb1m.upper * 0.997; // within 0.3% of upper band
-                if (trendBias === 'LONG' && nearLower && rsi1m < 38) entrySetup = 'PULLBACK';
-                if (trendBias === 'SHORT' && nearUpper && rsi1m > 62) entrySetup = 'PULLBACK';
+                const nearEMA21 = Math.abs(price1m - ema1m_21) / ema1m_21 < 0.001; // within 0.1%
+                const rsiOversold = rsi1m < 40;
+                const rsiOverbought = rsi1m > 60;
+
+                if (trendBias === 'LONG' && (price1m <= ema1m_21 * 1.001) && rsiOversold) entrySetup = 'PULLBACK';
+                if (trendBias === 'SHORT' && (price1m >= ema1m_21 * 0.999) && rsiOverbought) entrySetup = 'PULLBACK';
             }
 
             if (!entrySetup) {
+                const waitReason = isExhaustive ? 'rejected (last candle too large - exhaustion risk)' : 'no setup';
                 report.decision = 'WAITING_FOR_ENTRY_SETUP';
-                report.reason = `Trend ${trendBias} confirmed, but no breakout or pullback entry on 1m (RSI=${rsi1m.toFixed(1)}, vol=${(currentVol1m / (avgVol1m || 1)).toFixed(2)}x).`;
+                report.reason = `Trend ${trendBias} confirmed, but ${waitReason} on 1m (RSI=${rsi1m.toFixed(1)}, vol=${(currentVol1m / (avgVol1m || 1)).toFixed(2)}x).`;
                 return report;
             }
 
             // ═══════════════════════════════════════════════════════════════
             // LAYER 4 — RSI EXHAUSTION GATE  (SOFT GATE)
-            // Blocks only if 5m RSI is at extreme exhaustion — prevents entering at the top/bottom
             // ═══════════════════════════════════════════════════════════════
             const rsiExhausted =
-                (trendBias === 'LONG' && rsi5m > 82) ||  // overbought extreme
-                (trendBias === 'SHORT' && rsi5m < 18);     // oversold extreme
+                (trendBias === 'LONG' && rsi5m > 80) ||
+                (trendBias === 'SHORT' && rsi5m < 20);
 
             if (rsiExhausted) {
                 report.decision = 'WAITING_FOR_RSI_GATE';
-                report.reason = `${trendBias} setup ready but 5m RSI (${rsi5m.toFixed(1)}) is at exhaustion — high reversal risk.`;
+                report.reason = `${trendBias} setup ready but 5m RSI (${rsi5m.toFixed(1)}) is exhausted.`;
                 return report;
             }
 
@@ -197,10 +213,10 @@ export class ConfluenceStrategy {
             report.trend = trendBias;
             report.entrySetup = entrySetup;
             report.reason = [
-                `✅ L1 Trend: ${trendBias} (EMA21=${ema21.toFixed(2)} vs EMA55=${ema55.toFixed(2)})`,
-                `✅ L2 Funding: ${fundingLabel} — aligned or neutral`,
+                `✅ L1 Trend: ${trendBias} (EMA13=${emaFast.toFixed(2)}, EMA34=${emaSlow.toFixed(2)})`,
+                `✅ L2 Funding: ${fundingLabel}`,
                 `✅ L3 Entry: ${entrySetup} on 1m (RSI=${rsi1m.toFixed(1)}, vol=${report.indicators.volumeMultiple.toFixed(2)}x)`,
-                `✅ L4 RSI gate: 5m RSI ${rsi5m.toFixed(1)} — not exhausted`
+                `✅ L4 RSI gate: 5m RSI ${rsi5m.toFixed(1)}`
             ].join(' | ');
 
             return report;

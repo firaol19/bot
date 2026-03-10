@@ -1,4 +1,5 @@
-import { ConfluenceStrategy } from './src/lib/trading/confluence-strategy';
+require('ts-node').register();
+const { ConfluenceStrategy } = require('./src/lib/trading/confluence-strategy');
 
 async function runVerification() {
     console.log('--- Confluence Strategy Scalper Verification ---');
@@ -6,35 +7,33 @@ async function runVerification() {
 
     // Mock Exchange
     const mockExchange = {
-        getKlines: async (symbol: string, tf: string, count: number) => {
+        getKlines: async (symbol, tf, count) => {
             if (tf === '5m') {
                 return Array(count).fill(0).map((_, i) => [Date.now(), 100, 101, 99, 100, 1000]);
             } else {
                 return Array(count).fill(0).map((_, i) => [Date.now(), 100, 100.5, 99.5, 100, 500]);
             }
         },
-        getFundingRate: async () => 0.0001
+        getFundingRate: async () => 0.0001,
+        normalizeSymbol: (s) => s
     };
 
     console.log('\nTesting 5m Trend Detection (L1)...');
-    // Trend should be NONE if flat
     let report = await strategy.getAnalysisReport('BTCUSDT', mockExchange);
     console.log(`Decision on Flat Price: ${report.decision} (Expected: WAITING_FOR_TREND)`);
 
     console.log('\nTesting Anti-Chasing Logic (L3)...');
-    // Setup a 5m Trend first (Price > EMA13 > EMA34)
-    // Actually we need to provide specific klines to the mock
     const bullishKlines5m = Array(100).fill(0).map((_, i) => [Date.now(), 100 + i, 101 + i, 99 + i, 100 + i, 1000]);
 
     const exhaustiveExchange = {
-        getKlines: async (symbol: string, tf: string, count: number) => {
+        getKlines: async (symbol, tf, count) => {
             if (tf === '5m') return bullishKlines5m.slice(-count);
-            // 1m: Last candle is 5% range (105-100) while previous average is small
             const k1m = Array(count - 1).fill(0).map((_, i) => [Date.now(), 110, 110.1, 109.9, 110, 500]);
-            k1m.push([Date.now(), 110, 115, 110, 115, 2000]); // HUGE exhaustive candle
+            k1m.push([Date.now(), 110, 115, 110, 115, 2000]);
             return k1m;
         },
-        getFundingRate: async () => 0.0001
+        getFundingRate: async () => 0.0001,
+        normalizeSymbol: (s) => s
     };
 
     report = await strategy.getAnalysisReport('BTCUSDT', exhaustiveExchange);
@@ -43,20 +42,18 @@ async function runVerification() {
 
     console.log('\nTesting EMA Pullback Entry (L3)...');
     const pullbackExchange = {
-        getKlines: async (symbol: string, tf: string, count: number) => {
+        getKlines: async (symbol, tf, count) => {
             if (tf === '5m') return bullishKlines5m.slice(-count);
-            // 1m: Trend is up, but price is pulling back to EMA21
-            // EMA21 will be around 110. Calculate klines to make price touch it.
             const k1m = Array(count).fill(0).map((_, i) => [Date.now(), 110, 110.1, 109.9, 110, 500]);
-            // Force a pullback touch
-            k1m[k1m.length - 1] = [Date.now(), 111, 111.1, 110, 110, 500]; // Price hits 110
+            k1m[k1m.length - 1] = [Date.now(), 111, 111.1, 110, 110.1, 500];
             return k1m;
         },
-        getFundingRate: async () => 0.0001
+        getFundingRate: async () => 0.0001,
+        normalizeSymbol: (s) => s
     };
 
     report = await strategy.getAnalysisReport('BTCUSDT', pullbackExchange);
-    console.log(`Pullback Decision: ${report.decision} (Expected: SIGNAL_READY or similar)`);
+    console.log(`Pullback Decision: ${report.decision} (Expected: SIGNAL_READY)`);
     if (report.decision === 'SIGNAL_READY') {
         console.log(`✅ Success: Found ${report.entrySetup} entry!`);
     } else {
